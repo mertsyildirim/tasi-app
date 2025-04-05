@@ -1,0 +1,241 @@
+'use client'
+
+import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
+import { getUserFromStorage, logoutUser } from '../utils/auth'
+import { FaUser, FaSignOutAlt, FaCog, FaChevronDown } from 'react-icons/fa'
+import { useRouter } from 'next/navigation'
+
+export default function Header() {
+  const router = useRouter()
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [user, setUser] = useState<any>(null)
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
+  const profileRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const userData = getUserFromStorage()
+    console.log('Header - User Data:', userData)
+    setUser(userData)
+
+    // Kullanıcı bilgileri değiştiğinde güncelle
+    const handleUserDataChange = (event: CustomEvent) => {
+      setUser(event.detail)
+    }
+
+    window.addEventListener('userDataChanged', handleUserDataChange as EventListener)
+
+    // Dropdown dışına tıklandığında menüyü kapat
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      window.removeEventListener('userDataChanged', handleUserDataChange as EventListener)
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
+  const handleLogout = () => {
+    logoutUser()
+    setUser(null)
+    router.push('/')
+  }
+
+  return (
+    <header className="bg-white shadow-md">
+      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo - Sol Kısım */}
+          <div className="flex-shrink-0">
+            <Link href="/" className="flex items-center">
+              <span className="text-2xl font-bold text-orange-500">TaşıApp</span>
+            </Link>
+          </div>
+
+          {/* Menü - Orta Kısım */}
+          <div className="hidden md:flex md:items-center justify-center flex-1 mx-8">
+            <div className="flex space-x-8">
+              <Link href="/" className="text-gray-600 hover:text-orange-500">
+                Ana Sayfa
+              </Link>
+              <Link href="/hakkimizda" className="text-gray-600 hover:text-orange-500">
+                Hakkımızda
+              </Link>
+              <Link href="/hizmetler" className="text-gray-600 hover:text-orange-500">
+                Hizmetlerimiz
+              </Link>
+              <Link href="/nasil-calisir" className="text-gray-600 hover:text-orange-500">
+                Nasıl Çalışır?
+              </Link>
+              <Link href="/iletisim" className="text-gray-600 hover:text-orange-500">
+                İletişim
+              </Link>
+            </div>
+          </div>
+
+          {/* Profil/Giriş - Sağ Kısım */}
+          <div className="hidden md:flex md:items-center">
+            {user ? (
+              <div className="relative" ref={profileRef}>
+                <button
+                  onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                  className="flex items-center space-x-2 text-gray-600 hover:text-orange-500 focus:outline-none"
+                >
+                  <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                    <FaUser className="text-white w-4 h-4" />
+                  </div>
+                  <span className="font-medium text-gray-700">{user.type === 'individual' ? user.fullName : user.companyName}</span>
+                  <FaChevronDown className={`w-4 h-4 transition-transform duration-200 ${isProfileMenuOpen ? 'transform rotate-180' : ''}`} />
+                </button>
+
+                {isProfileMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50 border border-gray-100">
+                    <Link
+                      href="/profil"
+                      className="flex items-center px-4 py-2 text-gray-600 hover:bg-orange-50 hover:text-orange-500"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                    >
+                      <FaUser className="w-4 h-4 mr-2" />
+                      Profilim
+                    </Link>
+                    <Link
+                      href="/ayarlar"
+                      className="flex items-center px-4 py-2 text-gray-600 hover:bg-orange-50 hover:text-orange-500"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                    >
+                      <FaCog className="w-4 h-4 mr-2" />
+                      Ayarlar
+                    </Link>
+                    <button
+                      onClick={() => {
+                        handleLogout()
+                        setIsProfileMenuOpen(false)
+                      }}
+                      className="w-full flex items-center px-4 py-2 text-gray-600 hover:bg-orange-50 hover:text-orange-500"
+                    >
+                      <FaSignOutAlt className="w-4 h-4 mr-2" />
+                      Çıkış Yap
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                href="/giris"
+                className="inline-flex items-center px-4 py-2 border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white rounded-lg transition-colors"
+              >
+                Giriş Yap / Kayıt Ol
+              </Link>
+            )}
+          </div>
+
+          {/* Mobil Menü Butonu */}
+          <div className="md:hidden flex items-center">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="text-gray-600 hover:text-orange-500 focus:outline-none"
+            >
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                {isMenuOpen ? (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                ) : (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                )}
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Mobil Menü */}
+        {isMenuOpen && (
+          <div className="md:hidden">
+            <div className="pt-2 pb-3 space-y-1">
+              <Link
+                href="/"
+                className="block px-3 py-2 text-gray-600 hover:bg-orange-50 hover:text-orange-500 rounded-md"
+              >
+                Ana Sayfa
+              </Link>
+              <Link
+                href="/hakkimizda"
+                className="block px-3 py-2 text-gray-600 hover:bg-orange-50 hover:text-orange-500 rounded-md"
+              >
+                Hakkımızda
+              </Link>
+              <Link
+                href="/hizmetler"
+                className="block px-3 py-2 text-gray-600 hover:bg-orange-50 hover:text-orange-500 rounded-md"
+              >
+                Hizmetlerimiz
+              </Link>
+              <Link
+                href="/nasil-calisir"
+                className="block px-3 py-2 text-gray-600 hover:bg-orange-50 hover:text-orange-500 rounded-md"
+              >
+                Nasıl Çalışır?
+              </Link>
+              <Link
+                href="/iletisim"
+                className="block px-3 py-2 text-gray-600 hover:bg-orange-50 hover:text-orange-500 rounded-md"
+              >
+                İletişim
+              </Link>
+
+              {user ? (
+                <>
+                  <Link
+                    href="/profil"
+                    className="block px-3 py-2 text-gray-600 hover:bg-orange-50 hover:text-orange-500 rounded-md"
+                  >
+                    <FaUser className="inline-block mr-2" />
+                    Profilim
+                  </Link>
+                  <Link
+                    href="/ayarlar"
+                    className="block px-3 py-2 text-gray-600 hover:bg-orange-50 hover:text-orange-500 rounded-md"
+                  >
+                    <FaCog className="inline-block mr-2" />
+                    Ayarlar
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-3 py-2 text-gray-600 hover:bg-orange-50 hover:text-orange-500 rounded-md"
+                  >
+                    <FaSignOutAlt className="inline-block mr-2" />
+                    Çıkış Yap
+                  </button>
+                </>
+              ) : (
+                <Link
+                  href="/giris"
+                  className="block px-3 py-2 text-orange-500 hover:bg-orange-50 rounded-md"
+                >
+                  Giriş Yap / Kayıt Ol
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+      </nav>
+    </header>
+  )
+} 
