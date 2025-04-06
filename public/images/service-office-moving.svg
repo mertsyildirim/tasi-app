@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <rect width="400" height="300" fill="#F0F9FF" />
+  
+  <!-- Ofis binası -->
+  <rect x="220" y="80" width="140" height="170" fill="#0EA5E9" stroke="#0369A1" stroke-width="2" />
+  
+  <!-- Pencereler -->
+  <rect x="235" y="100" width="30" height="30" fill="#BFDBFE" stroke="#0369A1" stroke-width="1" />
+  <rect x="275" y="100" width="30" height="30" fill="#BFDBFE" stroke="#0369A1" stroke-width="1" />
+  <rect x="315" y="100" width="30" height="30" fill="#BFDBFE" stroke="#0369A1" stroke-width="1" />
+  
+  <rect x="235" y="140" width="30" height="30" fill="#BFDBFE" stroke="#0369A1" stroke-width="1" />
+  <rect x="275" y="140" width="30" height="30" fill="#BFDBFE" stroke="#0369A1" stroke-width="1" />
+  <rect x="315" y="140" width="30" height="30" fill="#BFDBFE" stroke="#0369A1" stroke-width="1" />
+  
+  <rect x="235" y="180" width="30" height="30" fill="#BFDBFE" stroke="#0369A1" stroke-width="1" />
+  <rect x="275" y="180" width="30" height="30" fill="#BFDBFE" stroke="#0369A1" stroke-width="1" />
+  <rect x="315" y="180" width="30" height="30" fill="#BFDBFE" stroke="#0369A1" stroke-width="1" />
+  
+  <!-- Kapı -->
+  <rect x="260" y="210" width="60" height="40" fill="#0369A1" />
+  
+  <!-- Ofis Eşyaları -->
+  <rect x="40" y="150" width="60" height="80" fill="#64748B" stroke="#334155" stroke-width="1" /> <!-- Dolap -->
+  <rect x="120" y="180" width="80" height="10" fill="#334155" /> <!-- Masa -->
+  <rect x="140" y="190" width="10" height="40" fill="#334155" /> <!-- Masa ayağı -->
+  <rect x="170" y="190" width="10" height="40" fill="#334155" /> <!-- Masa ayağı -->
+  <rect x="135" y="160" width="50" height="20" fill="#94A3B8" /> <!-- Bilgisayar -->
+  
+  <!-- Kamyon -->
+  <rect x="20" y="230" width="80" height="50" rx="5" ry="5" fill="#0369A1" stroke="#000" stroke-width="1" />
+  <rect x="100" y="240" width="30" height="40" rx="5" ry="5" fill="#0369A1" stroke="#000" stroke-width="1" />
+  <circle cx="50" cy="285" r="10" fill="#1F2937" stroke="#000" stroke-width="1" />
+  <circle cx="110" cy="285" r="10" fill="#1F2937" stroke="#000" stroke-width="1" />
+  
+  <!-- Ok işareti -->
+  <path d="M155 200 H 200" stroke="#0369A1" stroke-width="3" stroke-dasharray="10 5" />
+  <polygon points="200,200 190,190 190,210" fill="#0369A1" />
+  
+  <!-- Başlık -->
+  <text x="200" y="30" font-family="Arial" font-size="16" font-weight="bold" text-anchor="middle" fill="#0369A1">Ofis Taşıma Hizmeti</text>
+</svg>

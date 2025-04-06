@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="800" height="600" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6366F1;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#60A5FA;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#A5B4FC;stop-opacity:0.9" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="4" stdDeviation="4" flood-color="#64748B" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Arka plan -->
+  <rect width="800" height="600" fill="#F9FAFB" />
+  
+  <!-- Step 1: Talep Oluştur -->
+  <g transform="translate(100, 100)">
+    <circle cx="60" cy="60" r="60" fill="url(#grad2)" filter="url(#shadow)" />
+    <text x="60" y="65" font-family="Arial" font-size="16" font-weight="bold" text-anchor="middle" fill="#1E40AF">1</text>
+    
+    <text x="150" y="45" font-family="Arial" font-size="22" font-weight="bold" fill="#1F2937">Talep Oluştur</text>
+    <text x="150" y="75" font-family="Arial" font-size="14" fill="#6B7280">Taşıma talebinizi birkaç dakikada oluşturun</text>
+    
+    <!-- Form ikonu -->
+    <rect x="500" y="20" width="120" height="160" rx="8" ry="8" fill="white" stroke="#D1D5DB" stroke-width="2" />
+    <line x1="520" y1="50" x2="600" y2="50" stroke="#D1D5DB" stroke-width="2" />
+    <line x1="520" y1="80" x2="600" y2="80" stroke="#D1D5DB" stroke-width="2" />
+    <line x1="520" y1="110" x2="600" y2="110" stroke="#D1D5DB" stroke-width="2" />
+    <rect x="520" y="140" width="80" height="20" rx="4" ry="4" fill="#3B82F6" />
+  </g>
+  
+  <!-- Step 2: Teklifleri Karşılaştır -->
+  <g transform="translate(100, 250)">
+    <circle cx="60" cy="60" r="60" fill="url(#grad2)" filter="url(#shadow)" />
+    <text x="60" y="65" font-family="Arial" font-size="16" font-weight="bold" text-anchor="middle" fill="#1E40AF">2</text>
+    
+    <text x="150" y="45" font-family="Arial" font-size="22" font-weight="bold" fill="#1F2937">Teklifleri Karşılaştır</text>
+    <text x="150" y="75" font-family="Arial" font-size="14" fill="#6B7280">Size gelen teklifleri inceleyip en uygun olanı seçin</text>
+    
+    <!-- Karşılaştırma ikonu -->
+    <rect x="500" y="20" width="40" height="120" rx="4" ry="4" fill="#FCD34D" stroke="#F59E0B" stroke-width="1" />
+    <rect x="550" y="40" width="40" height="100" rx="4" ry="4" fill="#A7F3D0" stroke="#10B981" stroke-width="1" />
+    <rect x="600" y="60" width="40" height="80" rx="4" ry="4" fill="#BFDBFE" stroke="#3B82F6" stroke-width="1" />
+  </g>
+  
+  <!-- Step 3: Taşıma İşlemini Tamamla -->
+  <g transform="translate(100, 400)">
+    <circle cx="60" cy="60" r="60" fill="url(#grad2)" filter="url(#shadow)" />
+    <text x="60" y="65" font-family="Arial" font-size="16" font-weight="bold" text-anchor="middle" fill="#1E40AF">3</text>
+    
+    <text x="150" y="45" font-family="Arial" font-size="22" font-weight="bold" fill="#1F2937">Taşıma Tamamla</text>
+    <text x="150" y="75" font-family="Arial" font-size="14" fill="#6B7280">Eşyalarınız güvenle taşınır, işlem sonrası değerlendirme yapın</text>
+    
+    <!-- Tamamlama ikonu -->
+    <circle cx="560" cy="70" r="50" fill="white" stroke="#D1D5DB" stroke-width="2" />
+    <polyline points="530,70 550,90 590,50" stroke="#10B981" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+  </g>
+  
+  <!-- Bağlantı çizgileri -->
+  <line x1="160" y1="180" x2="160" y2="230" stroke="#D1D5DB" stroke-width="3" stroke-dasharray="8 4" />
+  <line x1="160" y1="330" x2="160" y2="380" stroke="#D1D5DB" stroke-width="3" stroke-dasharray="8 4" />
+  
+  <!-- Başlık -->
+  <text x="400" y="50" font-family="Arial" font-size="30" font-weight="bold" text-anchor="middle" fill="#1E40AF">Nasıl Çalışır?</text>
+</svg> 

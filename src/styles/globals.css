@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Özel Sınıflar */
+@layer components {
+  .btn-primary {
+    @apply bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-300;
+  }
+  
+  .btn-secondary {
+    @apply bg-white text-blue-600 px-4 py-2 rounded-lg border border-blue-600 hover:bg-blue-50 transition duration-300;
+  }
+  
+  .container-custom {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  .heading-lg {
+    @apply text-3xl font-bold text-gray-900;
+  }
+  
+  .heading-md {
+    @apply text-2xl font-bold text-gray-900;
+  }
+  
+  .text-content {
+    @apply text-gray-600 leading-relaxed;
+  }
+  
+  .card {
+    @apply bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition duration-300;
+  }
+}
+
+/* Animasyonlar */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes slideInFromBottom {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-slideIn {
+  animation: slideInFromBottom 0.5s ease-out;
+}

@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <rect width="400" height="300" fill="#F5F3FF" />
+  
+  <!-- Piyano -->
+  <rect x="220" y="140" width="130" height="100" rx="5" ry="5" fill="#8B5CF6" stroke="#6D28D9" stroke-width="2" />
+  <rect x="210" y="120" width="150" height="20" rx="3" ry="3" fill="#6D28D9" stroke="#4C1D95" stroke-width="1" />
+  <rect x="220" y="240" width="130" height="10" rx="2" ry="2" fill="#6D28D9" stroke="#4C1D95" stroke-width="1" />
+  
+  <!-- Tuşlar -->
+  <rect x="230" y="150" width="110" height="25" fill="#F3F4F6" stroke="#6D28D9" stroke-width="1" />
+  <rect x="232" y="155" width="8" height="15" fill="#1F2937" />
+  <rect x="244" y="155" width="8" height="15" fill="#1F2937" />
+  <rect x="256" y="155" width="8" height="15" fill="#1F2937" />
+  <rect x="268" y="155" width="8" height="15" fill="#1F2937" />
+  <rect x="280" y="155" width="8" height="15" fill="#1F2937" />
+  <rect x="292" y="155" width="8" height="15" fill="#1F2937" />
+  <rect x="304" y="155" width="8" height="15" fill="#1F2937" />
+  <rect x="316" y="155" width="8" height="15" fill="#1F2937" />
+  <rect x="328" y="155" width="8" height="15" fill="#1F2937" />
+  
+  <!-- Pedal -->
+  <rect x="260" y="250" width="50" height="5" fill="#6D28D9" />
+  <rect x="270" y="255" width="30" height="15" fill="#6D28D9" />
+  
+  <!-- Taşımacılar -->
+  <circle cx="60" cy="180" r="20" fill="#C4B5FD" />
+  <rect x="50" y="200" width="20" height="40" fill="#C4B5FD" />
+  <rect x="40" y="210" width="10" height="30" fill="#C4B5FD" />
+  <rect x="70" y="210" width="10" height="30" fill="#C4B5FD" />
+  
+  <circle cx="120" cy="180" r="20" fill="#C4B5FD" />
+  <rect x="110" y="200" width="20" height="40" fill="#C4B5FD" />
+  <rect x="100" y="210" width="10" height="30" fill="#C4B5FD" />
+  <rect x="130" y="210" width="10" height="30" fill="#C4B5FD" />
+  
+  <!-- Özel Taşıma Simgesi -->
+  <circle cx="170" cy="130" r="30" fill="#EDE9FE" stroke="#8B5CF6" stroke-width="2" />
+  <text x="170" y="135" font-family="Arial" font-size="12" font-weight="bold" text-anchor="middle" fill="#6D28D9">ÖZEL</text>
+  
+  <!-- Oklar -->
+  <path d="M100 190 L 200 190" stroke="#8B5CF6" stroke-width="2" stroke-dasharray="5 3" />
+  <polygon points="200,190 190,185 190,195" fill="#8B5CF6" />
+  
+  <!-- Başlık -->
+  <text x="200" y="30" font-family="Arial" font-size="16" font-weight="bold" text-anchor="middle" fill="#6D28D9">Özel Eşya Taşıma</text>
+  <text x="200" y="50" font-family="Arial" font-size="12" text-anchor="middle" fill="#7C3AED">Piyano, Sanat Eserleri, Antika Eşyalar</text>
+</svg> 
