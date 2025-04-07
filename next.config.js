@@ -24,8 +24,13 @@ const nextConfig = {
         source: '/dashboard',
         destination: '/portal/dashboard',
       },
+      {
+        source: '/admin',
+        destination: '/admin/login',
+      }
     ];
   },
+  output: 'standalone',
 };
 
 module.exports = nextConfig; 
