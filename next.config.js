@@ -4,8 +4,10 @@ const nextConfig = {
     GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
   },
   images: {
-    unoptimized: true
-  }
+    unoptimized: true,
+    domains: ['maps.googleapis.com']
+  },
+  output: 'standalone'
 };
 
 module.exports = nextConfig; 
