@@ -41,23 +41,26 @@ export default function MusteriSayfasi() {
   const [searchBoxDelivery, setSearchBoxDelivery] = useState(null)
 
   useEffect(() => {
-    if (isLoaded && !searchBoxPickup && !searchBoxDelivery) {
-      // Alım adresi için searchbox
+    if (isLoaded && window.google) {
+      // Alım adresi için autocomplete
       const pickupInput = document.getElementById('pickup-input')
-      const pickupSearchBox = new window.google.maps.places.SearchBox(pickupInput)
-      setSearchBoxPickup(pickupSearchBox)
+      const pickupAutocomplete = new window.google.maps.places.Autocomplete(pickupInput, {
+        componentRestrictions: { country: 'tr' },
+        fields: ['formatted_address', 'geometry']
+      })
 
-      // Teslimat adresi için searchbox
+      // Teslimat adresi için autocomplete
       const deliveryInput = document.getElementById('delivery-input')
-      const deliverySearchBox = new window.google.maps.places.SearchBox(deliveryInput)
-      setSearchBoxDelivery(deliverySearchBox)
+      const deliveryAutocomplete = new window.google.maps.places.Autocomplete(deliveryInput, {
+        componentRestrictions: { country: 'tr' },
+        fields: ['formatted_address', 'geometry']
+      })
 
       // Alım adresi seçildiğinde
-      pickupSearchBox.addListener('places_changed', () => {
-        const places = pickupSearchBox.getPlaces()
-        if (places.length === 0) return
+      pickupAutocomplete.addListener('place_changed', () => {
+        const place = pickupAutocomplete.getPlace()
+        if (!place.geometry) return
 
-        const place = places[0]
         setPickupAddress(place.formatted_address)
         setPickupLocation({
           lat: place.geometry.location.lat(),
@@ -74,11 +77,10 @@ export default function MusteriSayfasi() {
       })
 
       // Teslimat adresi seçildiğinde
-      deliverySearchBox.addListener('places_changed', () => {
-        const places = deliverySearchBox.getPlaces()
-        if (places.length === 0) return
+      deliveryAutocomplete.addListener('place_changed', () => {
+        const place = deliveryAutocomplete.getPlace()
+        if (!place.geometry) return
 
-        const place = places[0]
         setDeliveryAddress(place.formatted_address)
         setDeliveryLocation({
           lat: place.geometry.location.lat(),
