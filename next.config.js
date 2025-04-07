@@ -6,6 +6,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
     domains: ['maps.googleapis.com']
+  },
+  experimental: {
+    serverActions: true
   }
 };
 
