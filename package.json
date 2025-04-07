@@ -11,7 +11,7 @@
     "build": "next build",
     "vercel-build": "next build",
     "export": "next export",
-    "start": "serve out -p ${PORT:-3000}",
+    "start": "next start -p ${PORT:-3000}",
     "lint": "next lint"
   },
   "dependencies": {
