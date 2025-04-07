@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
   reactStrictMode: true,
   env: {
     GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
@@ -32,9 +31,7 @@ const nextConfig = {
       }
     ];
   },
-  experimental: {
-    serverActions: true
-  }
+  distDir: 'out'
 };
 
 module.exports = nextConfig; 
