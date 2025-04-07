@@ -8,10 +8,8 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "vercel-build": "next build",
-    "export": "next export",
-    "start": "npx serve@latest out",
+    "build": "next build && next export",
+    "start": "cd out && npx serve -p ${PORT:-3000}",
     "lint": "next lint"
   },
   "dependencies": {
