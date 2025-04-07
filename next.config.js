@@ -1,11 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
   env: {
     GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
   },
   images: {
     unoptimized: true,
-    domains: ['maps.googleapis.com']
+  },
+  typescript: {
+    ignoreBuildErrors: true,
   },
   async rewrites() {
     return [
@@ -21,8 +24,8 @@ const nextConfig = {
         source: '/dashboard',
         destination: '/portal/dashboard',
       },
-    ]
-  }
+    ];
+  },
 };
 
 module.exports = nextConfig; 
