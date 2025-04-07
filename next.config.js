@@ -51,6 +51,10 @@ const nextConfig = {
         ],
       },
     ]
+  },
+  // Google Maps için client-side rendering
+  experimental: {
+    runtime: 'edge',
   }
 };
 
