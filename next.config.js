@@ -6,6 +6,7 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    domains: ['localhost', 'railway.app']
   },
   typescript: {
     ignoreBuildErrors: true,
@@ -31,6 +32,9 @@ const nextConfig = {
     ];
   },
   output: 'standalone',
+  experimental: {
+    serverActions: true
+  }
 };
 
 module.exports = nextConfig; 
