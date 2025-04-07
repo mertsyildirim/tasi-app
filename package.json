@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "NODE_ENV=production node server.js",
+    "start": "npx serve@latest out -p ${PORT:-3000}",
     "lint": "next lint"
   },
   "dependencies": {
