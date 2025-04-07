@@ -1,25 +1,31 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
   reactStrictMode: true,
+  env: {
+    GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
+  },
   images: {
     unoptimized: true,
-    domains: ['localhost'],
-    remotePatterns: [
-      {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '3004',
-        pathname: '/**',
-      },
-    ],
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: true,
-  }
-}
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/',
+        destination: '/portal/login',
+      },
+      {
+        source: '/portal',
+        destination: '/portal/login',
+      },
+      {
+        source: '/dashboard',
+        destination: '/portal/dashboard',
+      },
+    ];
+  },
+};
 
-module.exports = nextConfig 
+module.exports = nextConfig; 
