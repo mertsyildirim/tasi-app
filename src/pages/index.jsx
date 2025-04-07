@@ -34,7 +34,7 @@ export default function MusteriSayfasi() {
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-    libraries: ['places']
+    libraries: ['places', 'maps']
   })
 
   const [searchBoxPickup, setSearchBoxPickup] = useState(null)
