@@ -7,7 +7,7 @@ const nextConfig = {
     unoptimized: true,
     domains: ['maps.googleapis.com']
   },
-  output: 'standalone'
+  output: 'export'
 };
 
 module.exports = nextConfig; 
