@@ -1,17 +1,16 @@
 [build]
   command = "npm run build"
-  publish = ".next"
+  publish = "out"
 
 [build.environment]
-  NEXT_TELEMETRY_DISABLED = "1"
+  NEXT_USE_NETLIFY_EDGE = "true"
   NODE_VERSION = "18"
   NPM_VERSION = "9"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# Next.js için tüm rotaları işlemesi için bu yönlendirmeyi kaldırıyoruz
-# [[redirects]]
-#   from = "/*"
-#   to = "/index.html"
-#   status = 200 
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200 
