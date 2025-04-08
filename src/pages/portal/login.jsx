@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaTruck } from 'react-icons/fa';
 import Head from 'next/head';
@@ -22,6 +22,12 @@ const USERS = [
     password: 'demo123',
     name: 'Demo Kullanıcı',
     role: 'carrier'
+  },
+  {
+    email: 'admin@tasiapp.com',
+    password: 'Admin123!',
+    name: 'Admin Kullanıcı',
+    role: 'admin'
   }
 ];
 
@@ -32,6 +38,23 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loginType, setLoginType] = useState('portal'); // Default olarak portal
+
+  useEffect(() => {
+    // Sayfa yüklendiğinde URL kontrolü yaparak giriş tipini belirle
+    const hostname = window.location.hostname;
+    const pathname = window.location.pathname;
+
+    if (hostname === 'tasiapp.com' || hostname === 'www.tasiapp.com') {
+      if (pathname.includes('/admin')) {
+        setLoginType('admin');
+      } else {
+        setLoginType('main');
+      }
+    } else if (hostname === 'portal.tasiapp.com' || hostname.includes('localhost')) {
+      setLoginType('portal');
+    }
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -55,8 +78,36 @@ export default function Login() {
           taxOffice: 'İstanbul'
         }));
 
-        // Dashboard'a yönlendir
-        router.push('/portal/dashboard');
+        // Giriş tipine ve kullanıcı rolüne göre yönlendirme yap
+        if (loginType === 'admin') {
+          // Admin girişi yapılıyor
+          if (user.role === 'admin') {
+            window.location.href = '/admin/dashboard';
+          } else {
+            setError('Yetkisiz erişim. Bu alan sadece yöneticiler içindir.');
+            localStorage.removeItem('user');
+            setLoading(false);
+            return;
+          }
+        } else if (loginType === 'main') {
+          // Ana site girişi yapılıyor
+          window.location.href = '/';
+        } else {
+          // Portal girişi yapılıyor
+          switch (user.role) {
+            case 'admin':
+              router.push('/portal/admin/dashboard');
+              break;
+            case 'carrier':
+              router.push('/portal/dashboard');
+              break;
+            case 'driver':
+              router.push('/portal/driver/dashboard');
+              break;
+            default:
+              router.push('/portal/dashboard');
+          }
+        }
       } else {
         setError('Geçersiz e-posta veya şifre');
       }
@@ -68,11 +119,36 @@ export default function Login() {
     }
   };
 
+  // Login title ve açıklamasını giriş tipine göre ayarla
+  const getTitle = () => {
+    switch (loginType) {
+      case 'admin':
+        return 'Yönetici Paneli';
+      case 'main':
+        return 'Taşı.app';
+      case 'portal':
+      default:
+        return 'Taşıyıcı Portalı';
+    }
+  };
+
+  const getDescription = () => {
+    switch (loginType) {
+      case 'admin':
+        return 'Taşı.app yönetici paneline hoş geldiniz';
+      case 'main':
+        return 'Taşı.app ana sayfaya hoş geldiniz';
+      case 'portal':
+      default:
+        return 'Taşı.app taşıyıcı portalına hoş geldiniz';
+    }
+  };
+
   return (
     <>
       <Head>
-        <title>Taşıyıcı Portalı | Taşı.app</title>
-        <meta name="description" content="Taşı.app taşıyıcı portalı giriş sayfası" />
+        <title>{getTitle()} | Taşı.app</title>
+        <meta name="description" content={`Taşı.app ${getTitle().toLowerCase()} giriş sayfası`} />
         <link rel="icon" href="/favicon.ico" />
       </Head>
       
@@ -84,10 +160,10 @@ export default function Login() {
             </div>
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Taşıyıcı Portalı
+            {getTitle()}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Taşı.app taşıyıcı portalına hoş geldiniz
+            {getDescription()}
           </p>
         </div>
 
@@ -209,8 +285,17 @@ export default function Login() {
                 </div>
               </div>
               <div className="mt-6 text-center text-sm text-gray-600">
-                <p>E-posta: demo@tasiapp.com</p>
-                <p>Şifre: demo123</p>
+                {loginType === 'admin' ? (
+                  <>
+                    <p>E-posta: admin@tasiapp.com</p>
+                    <p>Şifre: Admin123!</p>
+                  </>
+                ) : (
+                  <>
+                    <p>E-posta: demo@tasiapp.com</p>
+                    <p>Şifre: demo123</p>
+                  </>
+                )}
               </div>
             </div>
           </div>

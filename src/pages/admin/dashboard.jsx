@@ -10,6 +10,7 @@ import {
 import { useRouter } from 'next/router'
 import AdminLayout from '../../components/admin/Layout'
 import Image from 'next/image'
+import Head from 'next/head'
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -22,6 +23,8 @@ export default function DashboardPage() {
   const [applicationDetailModal, setApplicationDetailModal] = useState(null)
   const [driverLocationModal, setDriverLocationModal] = useState(null)
   const router = useRouter()
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   // Mobil cihaz kontrolü
   useEffect(() => {
@@ -75,6 +78,23 @@ export default function DashboardPage() {
       document.body.style.overflow = 'auto';
     }
   }, [showActivitiesModal, shipmentDetailModal, applicationDetailModal, driverLocationModal, handleKeyDown]);
+
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      router.push('/portal/login');
+      return;
+    }
+
+    const parsedUser = JSON.parse(userData);
+    if (parsedUser.role !== 'admin') {
+      router.push('/portal/login');
+      return;
+    }
+    
+    setUser(parsedUser);
+    setLoading(false);
+  }, [router]);
 
   // Örnek veri
   const users = [
@@ -162,8 +182,8 @@ export default function DashboardPage() {
 
   // Çıkış yap fonksiyonu
   const handleLogout = () => {
-    // Çıkış işlemleri burada yapılır
-    router.push('/admin')
+    localStorage.removeItem('user');
+    router.push('/portal/login');
   }
 
   // Tarih formatı
@@ -178,608 +198,288 @@ export default function DashboardPage() {
     return date.toLocaleTimeString('tr-TR', options)
   }
 
-  return (
-    <AdminLayout title="Dashboard" isBlurred={showActivitiesModal || shipmentDetailModal || applicationDetailModal || driverLocationModal}>
-      <div className={showActivitiesModal || shipmentDetailModal || applicationDetailModal || driverLocationModal ? "blur-sm" : ""}>
-        {/* İstatistik Kartları */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <div className="bg-orange-100 p-3 rounded-full mr-4">
-                <FaUsers className="text-orange-600" />
-              </div>
-              <div>
-                <h3 className="text-gray-500 text-sm">Toplam Kullanıcı</h3>
-                <p className="text-2xl font-bold">1,250</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <div className="bg-green-100 p-3 rounded-full mr-4">
-                <FaTruck className="text-green-600" />
-              </div>
-              <div>
-                <h3 className="text-gray-500 text-sm">Tamamlanan Taşıma</h3>
-                <p className="text-2xl font-bold">856</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <div className="bg-yellow-100 p-3 rounded-full mr-4">
-                <FaClipboardList className="text-yellow-600" />
-              </div>
-              <div>
-                <h3 className="text-gray-500 text-sm">Aktif Talep</h3>
-                <p className="text-2xl font-bold">42</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <div className="bg-purple-100 p-3 rounded-full mr-4">
-                <FaFileInvoiceDollar className="text-purple-600" />
-              </div>
-              <div>
-                <h3 className="text-gray-500 text-sm">Aylık Gelir</h3>
-                <p className="text-2xl font-bold">₺45,500</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Son Taşımalar */}
-        <div className="bg-white rounded-lg shadow overflow-hidden mb-8">
-          <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-            <h3 className="font-semibold">Son Taşımalar</h3>
-            <button 
-              className="text-sm text-orange-600 hover:text-orange-700"
-              onClick={() => router.push('/admin/shipments')}
-            >
-              Tümünü Gör &rarr;
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Müşteri</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Taşıyıcı</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durum</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tutar</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tarih</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">İşlem</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {shipments.map((shipment) => (
-                  <tr key={shipment.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">#{shipment.id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{shipment.customer}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{shipment.carrier}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(shipment.status)}`}>
-                        {shipment.status === 'Taşınıyor' ? 'Taşıma Sürecinde' : shipment.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{shipment.amount}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{shipment.date}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <button 
-                        className="text-orange-600 hover:text-orange-800 transition-colors" 
-                        title="İncele"
-                        onClick={() => setShipmentDetailModal(shipment)}
-                      >
-                        <FaEye className="w-5 h-5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        
-        {/* Özet Kartları */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="font-semibold mb-4 flex items-center">
-              <FaTruck className="mr-2 text-orange-600" /> Aktif Sürücüler
-            </h3>
-            <div className="space-y-4">
-              {drivers.map(driver => (
-                <div key={driver.id} className="flex items-center">
-                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center mr-3">
-                    {driver.name.charAt(0)}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">{driver.name}</p>
-                    <p className="text-sm text-gray-500">{driver.vehicle} - {driver.location}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(driver.status)}`}>
-                      {driver.status === 'Taşınıyor' ? 'Taşıma Sürecinde' : driver.status}
-                    </span>
-                    <button 
-                      className="text-orange-600 hover:text-orange-800 transition-colors" 
-                      title="Sürücüyü Takip Et"
-                      onClick={() => setDriverLocationModal(driver)}
-                    >
-                      <FaLocationArrow className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <button 
-              className="mt-4 text-sm text-orange-600 hover:text-orange-700"
-              onClick={() => router.push('/admin/active-drivers')}
-            >
-              Tüm aktif sürücüleri görüntüle &rarr;
-            </button>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="font-semibold mb-4 flex items-center">
-              <FaClipboardList className="mr-2 text-orange-600" /> Son Etkinlikler
-            </h3>
-            <div className="space-y-4">
-              <div className="flex">
-                <div className="mr-3 flex-shrink-0">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                    <FaUser className="text-blue-600 text-xs" />
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm">Yeni kullanıcı kaydoldu: <span className="font-medium">Mehmet Kaya</span></p>
-                  <p className="text-xs text-gray-500">10 dakika önce</p>
-                </div>
-              </div>
-              
-              <div className="flex">
-                <div className="mr-3 flex-shrink-0">
-                  <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                    <FaTruck className="text-green-600 text-xs" />
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm">Taşıma tamamlandı: <span className="font-medium">#35</span></p>
-                  <p className="text-xs text-gray-500">1 saat önce</p>
-                </div>
-              </div>
-              
-              <div className="flex">
-                <div className="mr-3 flex-shrink-0">
-                  <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
-                    <FaFileInvoiceDollar className="text-yellow-600 text-xs" />
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm">Yeni ödeme alındı: <span className="font-medium">₺350</span></p>
-                  <p className="text-xs text-gray-500">3 saat önce</p>
-                </div>
-              </div>
-            </div>
-            <button className="mt-4 text-sm text-orange-600 hover:text-orange-700"
-              onClick={() => setShowActivitiesModal(true)}>
-              Tüm etkinlikleri görüntüle &rarr;
-            </button>
-          </div>
-        </div>
-
-        {/* Taşıyıcı/Sürücü Başvuruları */}
-        <div className="bg-white rounded-lg shadow overflow-hidden mt-8">
-          <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-            <h3 className="font-semibold">Taşıyıcı/Sürücü Başvuruları</h3>
-            <div className="flex space-x-1">
-              <button 
-                className={`px-3 py-1 text-sm rounded-md ${applicationFilter === 'taşıyıcı' ? 'bg-orange-50 text-orange-600' : 'hover:bg-gray-100'}`}
-                onClick={() => setApplicationFilter('taşıyıcı')}
-              >
-                Taşıyıcılar
-              </button>
-              <button 
-                className={`px-3 py-1 text-sm rounded-md ${applicationFilter === 'sürücü' ? 'bg-orange-50 text-orange-600' : 'hover:bg-gray-100'}`}
-                onClick={() => setApplicationFilter('sürücü')}
-              >
-                Sürücüler
-              </button>
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ad Soyad</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tip</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Firma</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Başvuru Tarihi</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">İşlem</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredApplications.map((app) => (
-                  <tr key={app.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">#{app.id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{app.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{app.type}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{app.company}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.date}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <button 
-                        className="text-orange-600 hover:text-orange-800 transition-colors" 
-                        title="İncele"
-                        onClick={() => setApplicationDetailModal(app)}
-                      >
-                        <FaEye />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-            <div className="text-sm text-gray-700">
-              Toplam <span className="font-medium">{filteredApplications.length}</span> bekleyen başvuru
-            </div>
-            <div className="flex space-x-1">
-              <button className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50">
-                Tümünü Görüntüle
-              </button>
-            </div>
-          </div>
-        </div>
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
+    );
+  }
 
-      {/* Shipment Detay Modal'i */}
-      {shipmentDetailModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto" onClick={(e) => {
-          if (e.target === e.currentTarget) setShipmentDetailModal(null);
-        }}>
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-auto">
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="font-semibold text-lg">Taşıma Detayları</h3>
-              <button 
-                onClick={() => setShipmentDetailModal(null)}
-                className="text-gray-500 hover:text-gray-700"
+  return (
+    <>
+      <Head>
+        <title>Yönetici Paneli | Taşı.app</title>
+        <meta name="description" content="Taşı.app yönetici kontrol paneli" />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+
+      <div className="min-h-screen bg-gray-100">
+        {/* Mobil sidebar toggle */}
+        <div className="lg:hidden fixed top-0 left-0 right-0 z-20 bg-white shadow-md p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <FaTruck className="h-8 w-8 text-blue-600" />
+              <span className="ml-3 text-xl font-semibold text-gray-900">Yönetici Paneli</span>
+            </div>
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 rounded-md text-gray-500 hover:text-gray-600 focus:outline-none"
+            >
+              {sidebarOpen ? <FaTimes className="h-6 w-6" /> : <FaBars className="h-6 w-6" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <aside
+          className={`fixed inset-y-0 left-0 z-10 w-64 bg-white shadow-lg transform ${
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          } lg:translate-x-0 transition-transform duration-300 ease-in-out`}
+        >
+          <div className="h-full flex flex-col">
+            {/* Sidebar header */}
+            <div className="p-6 border-b">
+              <div className="flex items-center">
+                <FaTruck className="h-8 w-8 text-blue-600" />
+                <span className="ml-3 text-xl font-semibold text-gray-900">Yönetici Paneli</span>
+              </div>
+            </div>
+
+            {/* Sidebar navigation */}
+            <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+              <a
+                href="#"
+                className="flex items-center px-4 py-3 text-gray-700 bg-blue-50 rounded-md"
               >
-                <FaTimes />
+                <FaChartLine className="h-5 w-5 mr-3 text-blue-500" />
+                <span>Gösterge Paneli</span>
+              </a>
+              <a
+                href="#"
+                className="flex items-center px-4 py-3 text-gray-600 hover:bg-blue-50 hover:text-gray-700 rounded-md"
+              >
+                <FaUsers className="h-5 w-5 mr-3 text-gray-500" />
+                <span>Kullanıcılar</span>
+              </a>
+              <a
+                href="#"
+                className="flex items-center px-4 py-3 text-gray-600 hover:bg-blue-50 hover:text-gray-700 rounded-md"
+              >
+                <FaTruck className="h-5 w-5 mr-3 text-gray-500" />
+                <span>Taşıyıcılar</span>
+              </a>
+              <a
+                href="#"
+                className="flex items-center px-4 py-3 text-gray-600 hover:bg-blue-50 hover:text-gray-700 rounded-md"
+              >
+                <FaClipboardList className="h-5 w-5 mr-3 text-gray-500" />
+                <span>Taşımalar</span>
+              </a>
+              <a
+                href="#"
+                className="flex items-center px-4 py-3 text-gray-600 hover:bg-blue-50 hover:text-gray-700 rounded-md"
+              >
+                <FaCog className="h-5 w-5 mr-3 text-gray-500" />
+                <span>Ayarlar</span>
+              </a>
+            </nav>
+
+            {/* Sidebar footer */}
+            <div className="p-4 border-t">
+              <div className="mb-4">
+                <div className="flex items-center">
+                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                    <span className="text-blue-600 font-semibold text-lg">
+                      {user?.name?.charAt(0) || 'A'}
+                    </span>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-700">{user?.name || 'Admin'}</p>
+                    <p className="text-xs text-gray-500">{user?.email || 'admin@tasiapp.com'}</p>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"
+              >
+                <FaSignOutAlt className="h-4 w-4 mr-3" />
+                <span>Çıkış Yap</span>
               </button>
             </div>
-            <div className="p-6">
-              <div className="grid grid-cols-3 gap-6 mb-6">
-                <div>
-                  <p className="text-sm text-gray-500">Taşıma No</p>
-                  <p className="font-medium">#{shipmentDetailModal.id}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Tarih</p>
-                  <p className="font-medium">{shipmentDetailModal.date}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Müşteri</p>
-                  <p className="font-medium">{shipmentDetailModal.customer}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Taşıyıcı</p>
-                  <p className="font-medium">{shipmentDetailModal.carrier}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Tutar</p>
-                  <p className="font-medium">{shipmentDetailModal.amount}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Durum</p>
-                  <p className="font-medium">
-                    <span className={`px-2 py-1 text-xs leading-5 font-semibold rounded-full ${getStatusColor(shipmentDetailModal.status)}`}>
-                      {shipmentDetailModal.status}
-                    </span>
-                  </p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-6">
-                <div className="mb-6">
-                  <h4 className="font-medium mb-2">Rota Bilgileri</h4>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="mb-2">
-                      <span className="font-medium">Nereden:</span> {shipmentDetailModal.from}
-                    </p>
-                    <p>
-                      <span className="font-medium">Nereye:</span> {shipmentDetailModal.to}
-                    </p>
-                  </div>
-                </div>
+          </div>
+        </aside>
 
-                <div className="mb-6 mt-4">
-                  <h4 className="font-medium mb-2">Taşıma İncele</h4>
-                  <div className="bg-orange-50 p-4 rounded-lg">
-                    <div className="flex flex-col space-y-2">
-                      <p className="text-sm">
-                        <span className="font-medium">Araç Tipi:</span> {shipmentDetailModal.carrier === 'Mehmet Kaya' ? 'Kamyon' : 'Kamyonet'}
-                      </p>
-                      <p className="text-sm">
-                        <span className="font-medium">Tahmini Varış:</span> {new Date(shipmentDetailModal.date).getDate() + 2}.{new Date(shipmentDetailModal.date).getMonth() + 1}.{new Date(shipmentDetailModal.date).getFullYear()}
-                      </p>
-                      <p className="text-sm">
-                        <span className="font-medium">Yük Bilgisi:</span> Ev Eşyası, {Math.floor(Math.random() * 10) + 1} Parça
-                      </p>
-                      <p className="text-sm">
-                        <span className="font-medium">Mesafe:</span> {Math.floor(Math.random() * 50) + 5} km
-                      </p>
-                      <p className="text-sm">
-                        <span className="font-medium">Gönderici Not:</span> Lütfen dikkatli taşıyınız, kırılabilir eşyalar mevcut.
-                      </p>
-                    </div>
+        {/* Main content */}
+        <main className={`lg:pl-64 pt-4 lg:pt-0`}>
+          <div className="p-6">
+            <h1 className="text-2xl font-semibold text-gray-900 mb-8">Gösterge Paneli</h1>
+
+            {/* Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Toplam Kullanıcılar</p>
+                    <p className="text-2xl font-semibold text-gray-900">154</p>
                   </div>
+                  <div className="p-3 rounded-full bg-blue-100">
+                    <FaUsers className="h-6 w-6 text-blue-600" />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <span className="text-green-500 text-sm font-medium">↑ 12%</span>
+                  <span className="text-gray-500 text-sm ml-2">Son 30 gün</span>
                 </div>
               </div>
 
-              <div className="mb-6">
-                <h4 className="font-medium mb-2">Harita</h4>
-                <div className="border rounded-lg overflow-hidden" style={{ height: '350px', position: 'relative' }}>
-                  <div className="bg-gray-200 w-full h-full flex items-center justify-center">
-                    <div className="text-center p-4 w-full">
-                      <p className="text-gray-500 mb-2">Rota haritası</p>
-                      <div className="flex justify-center">
-                        <div className="relative w-full h-full">
-                          <div className="w-full h-full absolute">
-                            <div className="w-full h-full bg-gray-100 flex items-center justify-between p-6 relative">
-                              <div className="flex flex-col items-center">
-                                <div className="w-4 h-4 rounded-full bg-green-500"></div>
-                                <div className="h-20 w-0.5 bg-gray-300 my-2"></div>
-                                <div className="bg-green-100 px-3 py-1 rounded-lg text-xs text-green-800">
-                                  {shipmentDetailModal.from}
-                                </div>
-                              </div>
-                              
-                              <div className="flex-1 mx-2 relative">
-                                <div className="h-0.5 bg-orange-400 w-full absolute top-2"></div>
-                                <div className="absolute top-0 left-1/4 transform -translate-y-1/2">
-                                  <FaTruck className="text-orange-500 text-lg" />
-                                </div>
-                              </div>
-                              
-                              <div className="flex flex-col items-center">
-                                <div className="w-4 h-4 rounded-full bg-red-500"></div>
-                                <div className="h-20 w-0.5 bg-gray-300 my-2"></div>
-                                <div className="bg-red-100 px-3 py-1 rounded-lg text-xs text-red-800">
-                                  {shipmentDetailModal.to}
-                                </div>
-                              </div>
-                            </div>
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Toplam Taşıyıcılar</p>
+                    <p className="text-2xl font-semibold text-gray-900">28</p>
+                  </div>
+                  <div className="p-3 rounded-full bg-green-100">
+                    <FaTruck className="h-6 w-6 text-green-600" />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <span className="text-green-500 text-sm font-medium">↑ 8%</span>
+                  <span className="text-gray-500 text-sm ml-2">Son 30 gün</span>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Aktif Taşımalar</p>
+                    <p className="text-2xl font-semibold text-gray-900">42</p>
+                  </div>
+                  <div className="p-3 rounded-full bg-purple-100">
+                    <FaClipboardList className="h-6 w-6 text-purple-600" />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <span className="text-green-500 text-sm font-medium">↑ 15%</span>
+                  <span className="text-gray-500 text-sm ml-2">Son 30 gün</span>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Toplam Gelir</p>
+                    <p className="text-2xl font-semibold text-gray-900">₺42,580</p>
+                  </div>
+                  <div className="p-3 rounded-full bg-yellow-100">
+                    <svg className="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <span className="text-green-500 text-sm font-medium">↑ 22%</span>
+                  <span className="text-gray-500 text-sm ml-2">Son 30 gün</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Users */}
+            <div className="bg-white rounded-lg shadow mb-8">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-900">Son Kaydolan Kullanıcılar</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kullanıcı</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Katılma Tarihi</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durum</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    <tr>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <span className="text-blue-600 font-semibold text-lg">A</span>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">Ali Yılmaz</div>
+                            <div className="text-sm text-gray-500">ali@example.com</div>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t border-gray-200 pt-4 flex justify-end">
-                <button 
-                  onClick={() => setShipmentDetailModal(null)}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded mr-2"
-                >
-                  Kapat
-                </button>
-                <button 
-                  onClick={() => router.push(`/admin/shipments/${shipmentDetailModal.id}`)}
-                  className="bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded"
-                >
-                  Detaylı Görüntüle
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Application Detay Modal'i */}
-      {applicationDetailModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto" onClick={(e) => {
-          if (e.target === e.currentTarget) setApplicationDetailModal(null);
-        }}>
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-auto">
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="font-semibold text-lg">{applicationDetailModal.type} Başvuru Detayları</h3>
-              <button 
-                onClick={() => setApplicationDetailModal(null)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <FaTimes />
-              </button>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                  <p className="text-sm text-gray-500">Başvuru No</p>
-                  <p className="font-medium">#{applicationDetailModal.id}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Başvuru Tarihi</p>
-                  <p className="font-medium">{applicationDetailModal.date}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Ad Soyad</p>
-                  <p className="font-medium">{applicationDetailModal.name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Başvuru Tipi</p>
-                  <p className="font-medium">{applicationDetailModal.type}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Firma</p>
-                  <p className="font-medium">{applicationDetailModal.company}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Durum</p>
-                  <p className="font-medium">
-                    <span className="px-2 py-1 text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                      {applicationDetailModal.status}
-                    </span>
-                  </p>
-                </div>
-              </div>
-              
-              <div className="mb-6">
-                <h4 className="font-medium mb-2">İletişim Bilgileri</h4>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="mb-2">
-                    <span className="font-medium">E-posta:</span> {applicationDetailModal.name.toLowerCase().replace(/\s+/g, '.')}@example.com
-                  </p>
-                  <p>
-                    <span className="font-medium">Telefon:</span> +90 5XX XXX XX XX
-                  </p>
-                </div>
-              </div>
-              
-              <div className="border-t border-gray-200 pt-4 flex justify-end">
-                <button 
-                  onClick={() => setApplicationDetailModal(null)}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded mr-2"
-                >
-                  Kapat
-                </button>
-                <button 
-                  className="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded mr-2"
-                >
-                  Reddet
-                </button>
-                <button 
-                  className="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded"
-                >
-                  Onayla
-                </button>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">Taşıyıcı</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">12 Mart 2024</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                          Aktif
+                        </span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
+                            <span className="text-purple-600 font-semibold text-lg">M</span>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">Mehmet Demir</div>
+                            <div className="text-sm text-gray-500">mehmet@example.com</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">Sürücü</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">10 Mart 2024</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                          Aktif
+                        </span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center">
+                            <span className="text-yellow-600 font-semibold text-lg">A</span>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">Ayşe Kaya</div>
+                            <div className="text-sm text-gray-500">ayse@example.com</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">Taşıyıcı</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">8 Mart 2024</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                          Pasif
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Sürücü Konum Modal'i */}
-      {driverLocationModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto" onClick={(e) => {
-          if (e.target === e.currentTarget) setDriverLocationModal(null);
-        }}>
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-auto">
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="font-semibold text-lg">Sürücü Konum Takibi</h3>
-              <button 
-                onClick={() => setDriverLocationModal(null)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <FaTimes />
-              </button>
-            </div>
-            <div className="p-4">
-              <div className="bg-orange-50 rounded-lg p-4 mb-4">
-                <div className="flex items-center">
-                  <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center mr-4">
-                    {driverLocationModal.name.charAt(0)}
-                  </div>
-                  <div>
-                    <h4 className="font-medium">{driverLocationModal.name}</h4>
-                    <p className="text-sm text-gray-600">{driverLocationModal.vehicle} • Son konum: {driverLocationModal.location}</p>
-                    <p className="text-sm text-gray-500">Son aktivite: {driverLocationModal.lastActive}</p>
-                  </div>
-                  <div className="ml-auto">
-                    <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(driverLocationModal.status)}`}>
-                      {driverLocationModal.status}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="border rounded-lg overflow-hidden" style={{ height: '400px', position: 'relative' }}>
-                <div className="bg-gray-200 w-full h-full flex items-center justify-center">
-                  <div className="text-center p-4">
-                    <p className="text-gray-500 mb-2">Harita yükleniyor...</p>
-                    <div className="flex justify-center">
-                      <FaMapMarkerAlt className="text-orange-500 animate-pulse h-10 w-10" />
-                    </div>
-                  </div>
-                </div>
-                <div className="absolute bottom-4 right-4 bg-white rounded-lg shadow-lg p-2">
-                  <div className="flex space-x-2">
-                    <button className="bg-gray-100 p-2 rounded hover:bg-gray-200">
-                      <FaPlus className="h-4 w-4" />
-                    </button>
-                    <button className="bg-gray-100 p-2 rounded hover:bg-gray-200">
-                      <FaTruck className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-4 flex justify-end">
-                <button 
-                  onClick={() => setDriverLocationModal(null)}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded mr-2"
-                >
-                  Kapat
-                </button>
-                <button 
-                  className="bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded"
-                >
-                  Sürücüyü Ara
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Etkinlikler Modal */}
-      {showActivitiesModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto" onClick={(e) => {
-          if (e.target === e.currentTarget) setShowActivitiesModal(false);
-        }}>
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-auto">
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="font-semibold text-lg">Tüm Etkinlikler</h3>
-              <button 
-                onClick={() => setShowActivitiesModal(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <FaTimes />
-              </button>
-            </div>
-            <div className="p-4 overflow-y-auto max-h-[60vh]">
-              <div className="space-y-4">
-                {allActivities.map(activity => (
-                  <div key={activity.id} className="flex p-3 border-b border-gray-100 hover:bg-gray-50 rounded-md">
-                    <div className="mr-3 flex-shrink-0">
-                      <div className={`w-8 h-8 rounded-full bg-${activity.type === 'user' ? 'blue' : activity.type === 'shipment' ? 'green' : activity.type === 'payment' ? 'yellow' : 'purple'}-100 flex items-center justify-center`}>
-                        {activity.icon}
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm">{activity.text}</p>
-                      <p className="text-xs text-gray-500">{activity.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="p-4 border-t border-gray-200 bg-gray-50">
-              <button 
-                onClick={() => setShowActivitiesModal(false)}
-                className="w-full py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
-              >
-                Kapat
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </AdminLayout>
+        </main>
+      </div>
+    </>
   )
 } 
