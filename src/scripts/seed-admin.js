@@ -1,50 +1,38 @@
-import { connectToDatabase, disconnectFromDatabase } from '../lib/mongodb';
-import User from '../models/User';
+// Dotenv yapılandırması
+require('dotenv').config({ path: '.env.local' });
+
+const { connectToDatabase, disconnectFromDatabase } = require('../lib/mongodb');
+const User = require('../models/User');
+const bcrypt = require('bcryptjs');
+
+const SALT_ROUNDS = 10;
 
 /**
- * Veritabanına admin kullanıcısı ekleme işlemi
+ * Kullanıcı şifresini hashleyen fonksiyon
  */
-async function seedAdminUser() {
+async function hashPassword(password) {
+  const salt = await bcrypt.genSalt(SALT_ROUNDS);
+  return bcrypt.hash(password, salt);
+}
+
+/**
+ * Veritabanına kullanıcı ekleme işlemi
+ */
+async function seedUsers() {
   try {
     // MongoDB'ye bağlan
     console.log('MongoDB bağlantısı kuruluyor...');
     await connectToDatabase();
     console.log('MongoDB bağlantısı başarılı!');
 
-    // Admin kullanıcısını kontrol et
-    const existingAdmin = await User.findOne({ email: 'admin@tasiapp.com' });
+    // Her bir site için kullanıcılar oluştur
     
-    if (existingAdmin) {
-      console.log('Admin kullanıcısı zaten mevcut.');
-    } else {
-      // Admin kullanıcısını oluştur
-      const admin = await User.create({
-        name: 'Taşı Admin',
-        email: 'admin@tasiapp.com',
-        password: 'Admin123!', // Not: Gerçek bir uygulamada şifre hashlenmelidir!
-        phone: '+90 555 123 4567',
-        role: 'admin',
-        company: 'Taşı Lojistik',
-        address: 'Levent, İstanbul',
-        taxNumber: '1234567890',
-        taxOffice: 'İstanbul',
-        isActive: true
-      });
-      
-      console.log('Admin kullanıcısı başarıyla oluşturuldu:', admin.email);
-    }
-
-    // Taşıyıcı kullanıcısını kontrol et
-    const existingCarrier = await User.findOne({ email: 'carrier@tasiapp.com' });
-    
-    if (existingCarrier) {
-      console.log('Taşıyıcı kullanıcısı zaten mevcut.');
-    } else {
-      // Taşıyıcı kullanıcısını oluştur
-      const carrier = await User.create({
+    // 1. Portal kullanıcıları (portal.tasiapp.com)
+    const portalUsers = [
+      {
         name: 'Taşıyıcı Firma',
         email: 'carrier@tasiapp.com',
-        password: 'Carrier123!', // Not: Gerçek bir uygulamada şifre hashlenmelidir!
+        password: await hashPassword('Carrier123!'),
         phone: '+90 555 123 7890',
         role: 'carrier',
         company: 'ABC Lojistik',
@@ -52,43 +40,21 @@ async function seedAdminUser() {
         taxNumber: '9876543210',
         taxOffice: 'İstanbul',
         isActive: true
-      });
-      
-      console.log('Taşıyıcı kullanıcısı başarıyla oluşturuldu:', carrier.email);
-    }
-
-    // Sürücü kullanıcısını kontrol et
-    const existingDriver = await User.findOne({ email: 'driver@tasiapp.com' });
-    
-    if (existingDriver) {
-      console.log('Sürücü kullanıcısı zaten mevcut.');
-    } else {
-      // Sürücü kullanıcısını oluştur
-      const driver = await User.create({
+      },
+      {
         name: 'Ahmet Sürücü',
         email: 'driver@tasiapp.com',
-        password: 'Driver123!', // Not: Gerçek bir uygulamada şifre hashlenmelidir!
+        password: await hashPassword('Driver123!'),
         phone: '+90 555 987 6543',
         role: 'driver',
         company: 'ABC Lojistik',
         address: 'Beşiktaş, İstanbul',
         isActive: true
-      });
-      
-      console.log('Sürücü kullanıcısı başarıyla oluşturuldu:', driver.email);
-    }
-
-    // Demo kullanıcısını kontrol et
-    const existingDemo = await User.findOne({ email: 'demo@tasiapp.com' });
-    
-    if (existingDemo) {
-      console.log('Demo kullanıcısı zaten mevcut.');
-    } else {
-      // Demo kullanıcısını oluştur
-      const demo = await User.create({
+      },
+      {
         name: 'Demo Kullanıcı',
         email: 'demo@tasiapp.com',
-        password: 'demo123', // Not: Gerçek bir uygulamada şifre hashlenmelidir!
+        password: await hashPassword('demo123'),
         phone: '+90 555 000 0000',
         role: 'carrier',
         company: 'Demo Lojistik',
@@ -96,9 +62,56 @@ async function seedAdminUser() {
         taxNumber: '0000000000',
         taxOffice: 'Demo',
         isActive: true
-      });
+      }
+    ];
+
+    // 2. Admin kullanıcısı (tasiapp.com/admin)
+    const adminUsers = [
+      {
+        name: 'Taşı Admin',
+        email: 'admin@tasiapp.com',
+        password: await hashPassword('Admin123!'),
+        phone: '+90 555 123 4567',
+        role: 'admin',
+        company: 'Taşı Lojistik',
+        address: 'Levent, İstanbul',
+        taxNumber: '1234567890',
+        taxOffice: 'İstanbul',
+        isActive: true
+      }
+    ];
+
+    // 3. Müşteri kullanıcıları (tasiapp.com)
+    const customerUsers = [
+      {
+        name: 'Ali Müşteri',
+        email: 'customer@tasiapp.com',
+        password: await hashPassword('Customer123!'),
+        phone: '+90 555 111 2222',
+        role: 'customer',
+        address: 'Beyoğlu, İstanbul',
+        isActive: true
+      }
+    ];
+
+    // Tüm kullanıcıları birleştir
+    const allUsers = [...portalUsers, ...adminUsers, ...customerUsers];
+
+    // Kullanıcıları veritabanına ekle
+    for (const userData of allUsers) {
+      const existingUser = await User.findOne({ email: userData.email });
       
-      console.log('Demo kullanıcısı başarıyla oluşturuldu:', demo.email);
+      if (existingUser) {
+        console.log(`${userData.email} kullanıcısı zaten mevcut.`);
+        
+        // Email ve şifre hariç kullanıcı bilgilerini güncelle
+        const { email, password, ...updateData } = userData;
+        await User.findOneAndUpdate({ email }, updateData);
+        console.log(`${userData.email} kullanıcısı bilgileri güncellendi.`);
+      } else {
+        const user = await User.create(userData);
+        console.log(`${user.email} kullanıcısı başarıyla oluşturuldu. Rol: ${user.role}`);
+      }
     }
 
     console.log('Kullanıcı oluşturma işlemi tamamlandı.');
@@ -112,4 +125,4 @@ async function seedAdminUser() {
 }
 
 // Seed işlemini başlat
-seedAdminUser(); 
+seedUsers(); 

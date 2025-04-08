@@ -1,6 +1,9 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
-const ShipmentSchema = new mongoose.Schema({
+/**
+ * Shipment modeli - taşıma işlemlerini takip etmek için kullanılır
+ */
+const shipmentSchema = new mongoose.Schema({
   trackingNo: {
     type: String,
     required: [true, 'Takip numarası gereklidir'],
@@ -101,10 +104,10 @@ const ShipmentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },
-  carrier: {
+  customer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'Taşıyıcı ID gereklidir']
+    required: [true, 'Müşteri ID gereklidir']
   },
   status: {
     type: String,
@@ -166,5 +169,7 @@ const ShipmentSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Eğer Shipment modeli zaten tanımlanmış ise onu kullan, yoksa yeni model oluştur
-export default mongoose.models.Shipment || mongoose.model('Shipment', ShipmentSchema); 
+// Eğer model zaten tanımlanmışsa mevcut modeli kullan, yoksa yeni oluştur
+const Shipment = mongoose.models.Shipment || mongoose.model('Shipment', shipmentSchema);
+
+module.exports = Shipment; 

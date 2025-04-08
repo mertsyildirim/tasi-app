@@ -1,64 +1,63 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
-const UserSchema = new mongoose.Schema({
+// Kullanıcı için şema oluşturulması
+const userSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, 'Ad ve soyad gereklidir'],
-    trim: true
+    required: [true, 'İsim gereklidir'],
+    trim: true,
   },
   email: {
     type: String,
-    required: [true, 'E-posta adresi gereklidir'],
+    required: [true, 'E-posta gereklidir'],
     unique: true,
     lowercase: true,
     trim: true,
-    match: [/^\S+@\S+\.\S+$/, 'Geçerli bir e-posta adresi giriniz']
   },
   password: {
     type: String,
     required: [true, 'Şifre gereklidir'],
-    minlength: [6, 'Şifre en az 6 karakter olmalıdır']
+    minlength: [6, 'Şifre en az 6 karakter olmalıdır'],
   },
   phone: {
     type: String,
-    trim: true
+    required: false,
+    trim: true,
   },
   role: {
     type: String,
-    enum: ['carrier', 'driver', 'admin'],
-    default: 'carrier'
+    enum: ['admin', 'customer', 'portal'],
+    default: 'customer',
   },
-  company: {
+  companyName: {
     type: String,
-    trim: true
+    required: false,
+    trim: true,
   },
   address: {
     type: String,
-    trim: true
+    required: false,
+    trim: true,
   },
   taxNumber: {
     type: String,
-    trim: true
-  },
-  taxOffice: {
-    type: String,
-    trim: true
+    required: false,
+    trim: true,
   },
   isActive: {
     type: Boolean,
-    default: true
+    default: true,
   },
   createdAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   updatedAt: {
     type: Date,
-    default: Date.now
-  }
-}, {
-  timestamps: true // createdAt ve updatedAt alanlarını otomatik günceller
+    default: Date.now,
+  },
 });
 
-// Eğer User modeli zaten tanımlanmış ise onu kullan, yoksa yeni model oluştur
-export default mongoose.models.User || mongoose.model('User', UserSchema); 
+// Mongoose models kısmında User modeli zaten tanımlı mı diye kontrol ediyoruz
+// Eğer tanımlıysa onu kullanıyoruz, değilse yeni model oluşturuyoruz
+module.exports = mongoose.models.User || mongoose.model('User', userSchema); 

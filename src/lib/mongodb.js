@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/tasiapp';
 
@@ -13,7 +13,7 @@ if (!cached) {
  * MongoDB veritabanına bağlantı kurulmasını sağlayan fonksiyon
  * @returns {Promise<Mongoose>} Mongoose bağlantı nesnesi
  */
-export async function connectToDatabase() {
+async function connectToDatabase() {
   if (cached.conn) {
     return cached.conn;
   }
@@ -42,7 +42,7 @@ export async function connectToDatabase() {
 /**
  * MongoDB bağlantısını kapatmak için kullanılan fonksiyon
  */
-export async function disconnectFromDatabase() {
+async function disconnectFromDatabase() {
   if (cached.conn) {
     await mongoose.disconnect();
     cached.conn = null;
@@ -68,4 +68,9 @@ mongoose.connection.on('disconnected', () => {
 process.on('SIGINT', async () => {
   await disconnectFromDatabase();
   process.exit(0);
-}); 
+});
+
+module.exports = {
+  connectToDatabase,
+  disconnectFromDatabase
+}; 
