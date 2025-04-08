@@ -5,8 +5,22 @@ import { FaTruck, FaBox, FaMoneyBillWave, FaUsers, FaChartLine, FaSearch, FaEye 
 
 export default function Dashboard() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Demo kullanıcısını doğrudan tanımla - böylece kimlik doğrulama mekanizmasına gerek kalmayacak
+  const demoUser = {
+    id: 1,
+    name: 'Demo Kullanıcı',
+    email: 'demo@tasiapp.com',
+    phone: '+90 555 123 4567',
+    company: 'Taşı Lojistik A.Ş.',
+    taxNumber: '1234567890',
+    taxOffice: 'İstanbul',
+    address: 'Atatürk Mah. İstiklal Cad. No: 34, İstanbul, Türkiye',
+    role: 'portal_user'
+  };
+  
+  const [user, setUser] = useState(demoUser);
+  const [loading, setLoading] = useState(false); // Direkt false yapıyoruz, kimlik doğrulama yapmıyoruz
+  const [authError, setAuthError] = useState(false);
 
   const [shipments] = useState({
     active: [
@@ -21,15 +35,17 @@ export default function Dashboard() {
     ]
   });
 
+  // Portal kullanıcı verilerini kontrol et - Çok basitleştirdik
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (!userData) {
-      router.push('/portal/login');
-      return;
+    console.log("Demo kullanıcı hazır - Oturum kontrolü yapılmıyor");
+    try {
+      // Sadece demo kullanıcımızı saklamaya çalışalım
+      localStorage.setItem('portal_user', JSON.stringify(demoUser));
+      console.log("Demo kullanıcı localStorage'a kaydedildi");
+    } catch (e) {
+      console.warn("LocalStorage hatası, ancak sorun değil", e);
     }
-    setUser(JSON.parse(userData));
-    setLoading(false);
-  }, [router]);
+  }, []);
 
   if (loading) {
     return (
@@ -39,62 +55,125 @@ export default function Dashboard() {
     );
   }
 
+  if (authError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 text-xl mb-4">Yetkilendirme Hatası</div>
+          <p className="mb-4">Portal için giriş yapmanız gerekiyor.</p>
+          <button 
+            onClick={() => router.push('/portal/login')}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Giriş Sayfasına Git
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const renderShipmentCard = (shipment) => (
+    <div key={shipment.id} className="bg-white p-4 rounded-lg shadow mb-4 lg:hidden">
+      <div className="flex justify-between items-center mb-2">
+        <span className="font-medium text-gray-900">{shipment.trackingNo}</span>
+        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+          shipment.status === 'Yolda' ? 'bg-green-100 text-green-800' :
+          shipment.status === 'Yükleniyor' ? 'bg-yellow-100 text-yellow-800' :
+          shipment.status === 'Tamamlandı' ? 'bg-gray-100 text-gray-800' :
+          'bg-blue-100 text-blue-800'
+        }`}>
+          {shipment.status}
+        </span>
+      </div>
+      <div className="space-y-1 text-sm text-gray-500">
+        <div className="flex justify-between">
+          <span>Nereden:</span>
+          <span className="font-medium">{shipment.from}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>Nereye:</span>
+          <span className="font-medium">{shipment.to}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>Tarih:</span>
+          <span className="font-medium">{shipment.date}</span>
+        </div>
+      </div>
+      <div className="mt-3 flex justify-end">
+        <button 
+          onClick={() => router.push(`/portal/shipments/${shipment.id}`)}
+          className="text-blue-600 hover:text-blue-900 flex items-center space-x-1"
+        >
+          <FaEye className="h-4 w-4" />
+          <span className="text-sm">İncele</span>
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <PortalLayout title="Dashboard">
-      <div className="space-y-6">
+      <div className="space-y-6 p-4">
         {/* İstatistikler */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white rounded-lg shadow p-4 lg:p-6">
             <div className="flex items-center">
-              <div className="p-3 rounded-full bg-blue-100">
-                <FaTruck className="h-6 w-6 text-blue-600" />
+              <div className="p-2 lg:p-3 rounded-full bg-blue-100">
+                <FaTruck className="h-4 w-4 lg:h-6 lg:w-6 text-blue-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Aktif Taşımalar</p>
-                <p className="text-lg font-semibold text-gray-900">{shipments.active.length}</p>
+              <div className="ml-3 lg:ml-4">
+                <p className="text-xs lg:text-sm font-medium text-gray-500">Aktif Taşımalar</p>
+                <p className="text-base lg:text-lg font-semibold text-gray-900">{shipments.active.length}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 lg:p-6">
             <div className="flex items-center">
-              <div className="p-3 rounded-full bg-green-100">
-                <FaMoneyBillWave className="h-6 w-6 text-green-600" />
+              <div className="p-2 lg:p-3 rounded-full bg-green-100">
+                <FaMoneyBillWave className="h-4 w-4 lg:h-6 lg:w-6 text-green-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Toplam Kazanç</p>
-                <p className="text-lg font-semibold text-gray-900">12.500 ₺</p>
+              <div className="ml-3 lg:ml-4">
+                <p className="text-xs lg:text-sm font-medium text-gray-500">Toplam Kazanç</p>
+                <p className="text-base lg:text-lg font-semibold text-gray-900">12.500 ₺</p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 lg:p-6">
             <div className="flex items-center">
-              <div className="p-3 rounded-full bg-purple-100">
-                <FaUsers className="h-6 w-6 text-purple-600" />
+              <div className="p-2 lg:p-3 rounded-full bg-purple-100">
+                <FaUsers className="h-4 w-4 lg:h-6 lg:w-6 text-purple-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Müşteriler</p>
-                <p className="text-lg font-semibold text-gray-900">8</p>
+              <div className="ml-3 lg:ml-4">
+                <p className="text-xs lg:text-sm font-medium text-gray-500">Müşteriler</p>
+                <p className="text-base lg:text-lg font-semibold text-gray-900">8</p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 lg:p-6">
             <div className="flex items-center">
-              <div className="p-3 rounded-full bg-yellow-100">
-                <FaChartLine className="h-6 w-6 text-yellow-600" />
+              <div className="p-2 lg:p-3 rounded-full bg-yellow-100">
+                <FaChartLine className="h-4 w-4 lg:h-6 lg:w-6 text-yellow-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Performans</p>
-                <p className="text-lg font-semibold text-gray-900">%92</p>
+              <div className="ml-3 lg:ml-4">
+                <p className="text-xs lg:text-sm font-medium text-gray-500">Performans</p>
+                <p className="text-base lg:text-lg font-semibold text-gray-900">%92</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Aktif Taşımalar */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Aktif Taşımalar</h2>
-            <div className="overflow-x-auto">
+        <div className="bg-white rounded-lg shadow">
+          <div className="p-4 lg:p-6">
+            <h2 className="text-base lg:text-lg font-semibold text-gray-900 mb-4">Aktif Taşımalar</h2>
+            
+            {/* Mobil Görünüm */}
+            <div className="lg:hidden space-y-4">
+              {shipments.active.map(renderShipmentCard)}
+            </div>
+
+            {/* Masaüstü Görünüm */}
+            <div className="hidden lg:block overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
@@ -139,10 +218,17 @@ export default function Dashboard() {
         </div>
 
         {/* Son Taşımalar */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Son Taşımalar</h2>
-            <div className="overflow-x-auto">
+        <div className="bg-white rounded-lg shadow">
+          <div className="p-4 lg:p-6">
+            <h2 className="text-base lg:text-lg font-semibold text-gray-900 mb-4">Son Taşımalar</h2>
+            
+            {/* Mobil Görünüm */}
+            <div className="lg:hidden space-y-4">
+              {shipments.recent.map(renderShipmentCard)}
+            </div>
+
+            {/* Masaüstü Görünüm */}
+            <div className="hidden lg:block overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>

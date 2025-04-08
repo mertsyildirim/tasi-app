@@ -32,9 +32,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: `frame-ancestors 'self';
-                   script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com;
-                   img-src 'self' data: https://*.google.com https://*.googleapis.com https://*.gstatic.com;`
+            value: "frame-ancestors 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com; img-src 'self' data: https://*.google.com https://*.googleapis.com https://*.gstatic.com;"
           }
         ],
       },

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaTruck } from 'react-icons/fa';
 import Head from 'next/head';
 
@@ -8,32 +9,32 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
+    setError('');
 
-    try {
-      // Demo hesap kontrolü
-      if (email === 'demo@tasiapp.com' && password === 'demo123') {
-        // Kullanıcı bilgilerini localStorage'a kaydet
-        localStorage.setItem('user', JSON.stringify({
-          email,
-          name: 'Demo Kullanıcı',
-          role: 'admin'
-        }));
+    // Log için
+    console.log("Giriş bilgileri:", email, password);
 
-        // Dashboard'a yönlendir
-        router.push('/portal/dashboard');
-      } else {
-        setError('Geçersiz e-posta veya şifre');
+    // Basit doğrulama
+    if (email.trim() === 'demo@tasiapp.com' && password.trim() === 'demo123') {
+      console.log("Kimlik doğrulama başarılı!");
+
+      try {
+        // Doğrudan dashboard'a git - basit çözüm
+        console.log("Doğrudan dashboard'a yönlendiriliyor...");
+        window.location.href = "/portal/dashboard";
+      } catch (err) {
+        console.error("Yönlendirme hatası:", err);
+        setError("Yönlendirme hatası oluştu. Tekrar deneyin.");
       }
-    } catch (err) {
-      setError('Giriş yapılırken bir hata oluştu');
-    } finally {
+    } else {
+      console.log("Kimlik doğrulama başarısız!");
+      setError('Geçersiz e-posta veya şifre. Lütfen demo@tasiapp.com / demo123 kullanın.');
       setLoading(false);
     }
   };

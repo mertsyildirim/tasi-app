@@ -151,6 +151,45 @@ export default function PortalLayout({ children, title = 'Taşıyıcı Portalı'
       </Head>
 
       <div className="min-h-screen bg-gray-100">
+        {/* Mobile Header */}
+        <div className="lg:hidden fixed top-0 left-0 right-0 z-20 bg-white shadow-md">
+          <div className="flex items-center justify-between px-4 h-16">
+            <button 
+              onClick={() => setSidebarOpen(true)}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <FaBars className="h-6 w-6" />
+            </button>
+            <div className="flex items-center">
+              <FaTruck className="h-8 w-8 text-blue-600" />
+              <span className="ml-2 text-xl font-bold text-gray-900">Taşı.app</span>
+            </div>
+            <div className="relative">
+              <button
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="flex items-center"
+              >
+                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                  <span className="text-blue-600 font-medium">{user?.name?.charAt(0) || 'U'}</span>
+                </div>
+              </button>
+              {showProfileMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1">
+                  <Link href="/portal/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    Profil
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    Çıkış Yap
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Mobile Sidebar Overlay */}
         {sidebarOpen && (
           <div 
@@ -162,18 +201,10 @@ export default function PortalLayout({ children, title = 'Taşıyıcı Portalı'
         {/* Sidebar */}
         <div className={`fixed inset-y-0 left-0 z-30 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="flex flex-col h-full">
-            {/* Logo */}
-            <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
-              <div className="flex items-center">
-                <FaTruck className="h-8 w-8 text-blue-600" />
-                <span className="ml-2 text-xl font-bold text-gray-900">Taşı.app</span>
-              </div>
-              <button 
-                className="lg:hidden text-gray-500 hover:text-gray-700"
-                onClick={() => setSidebarOpen(false)}
-              >
-                <FaTimes className="h-6 w-6" />
-              </button>
+            {/* Logo - Desktop Only */}
+            <div className="hidden lg:flex items-center h-16 px-4 border-b border-gray-200">
+              <FaTruck className="h-8 w-8 text-blue-600" />
+              <span className="ml-2 text-xl font-bold text-gray-900">Taşı.app</span>
             </div>
 
             {/* User Info */}
@@ -199,75 +230,119 @@ export default function PortalLayout({ children, title = 'Taşıyıcı Portalı'
                   <Link
                     key={item.name}
                     href={item.href}
-                    className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${
+                    className={`flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
                       isActive
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'text-gray-700 hover:bg-gray-100'
+                        ? 'bg-blue-100 text-blue-600'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }`}
+                    onClick={() => isMobile && setSidebarOpen(false)}
                   >
-                    <item.icon className="mr-3 h-5 w-5" />
+                    <item.icon className={`mr-3 h-5 w-5 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
                     {item.name}
                   </Link>
                 );
               })}
             </nav>
 
-            {/* Logout Button */}
-            <div className="px-4 py-4 border-t border-gray-200">
-              <button
-                onClick={handleLogout}
-                className="flex items-center w-full px-4 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-100"
-              >
-                <FaSignOutAlt className="mr-3 h-5 w-5" />
-                Çıkış Yap
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className={`${isMobile ? 'ml-0' : 'ml-64'} flex flex-col min-h-screen`}>
-          {/* Top Navbar */}
-          <header className="bg-white shadow-sm">
-            <div className="flex items-center justify-between px-4 py-3">
-              <div className="flex items-center">
-                <button
-                  onClick={() => setIsMobile(!isMobile)}
-                  className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 md:hidden"
-                >
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                </button>
-                <h1 className="ml-4 text-xl font-semibold text-gray-900">{title}</h1>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div className="text-sm text-gray-500">
-                  {formatDate(currentTime)} {formatTime(currentTime)}
-                </div>
-                <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-gray-100">
+            {/* Footer */}
+            <div className="p-4 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
                   {getStatusIcon()}
-                  <span className="text-sm font-medium text-gray-700">Taşıyıcı Durumu: {getStatusText()}</span>
+                  <span className="ml-2 text-sm text-gray-500">{getStatusText()}</span>
                 </div>
-                <button className="p-2 text-gray-400 hover:text-gray-500">
-                  <FaBell className="h-5 w-5" />
-                </button>
-                <Link href="/portal/profile" className="p-2 text-gray-400 hover:text-gray-500">
-                  <FaUser className="h-5 w-5" />
-                </Link>
                 <button
                   onClick={handleLogout}
-                  className="p-2 text-gray-400 hover:text-gray-500"
+                  className="text-sm text-gray-500 hover:text-gray-700"
                 >
                   <FaSignOutAlt className="h-5 w-5" />
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="lg:pl-64 flex flex-col min-h-screen">
+          {/* Desktop Header */}
+          <header className="hidden lg:flex sticky top-0 z-10 bg-white shadow-sm">
+            <div className="flex-1 px-4 py-4 flex items-center justify-between">
+              <h1 className="text-2xl font-semibold text-gray-900">{title}</h1>
+              <div className="flex items-center space-x-4">
+                {/* Notifications */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowNotifications(!showNotifications)}
+                    className="p-2 text-gray-400 hover:text-gray-500 focus:outline-none"
+                  >
+                    <FaBell className="h-6 w-6" />
+                    {notifications.length > 0 && (
+                      <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white" />
+                    )}
+                  </button>
+                  {/* Notifications Dropdown */}
+                  {showNotifications && (
+                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg py-1">
+                      {notifications.length === 0 ? (
+                        <div className="px-4 py-2 text-sm text-gray-500">
+                          Bildirim bulunmuyor
+                        </div>
+                      ) : (
+                        notifications.map((notification, index) => (
+                          <div
+                            key={index}
+                            className="px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                          >
+                            <p className="text-sm font-medium text-gray-900">
+                              {notification.title}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {notification.message}
+                            </p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Profile Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowProfileMenu(!showProfileMenu)}
+                    className="flex items-center space-x-2 text-gray-500 hover:text-gray-700"
+                  >
+                    <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                      <span className="text-blue-600 font-medium">
+                        {user?.name?.charAt(0) || 'U'}
+                      </span>
+                    </div>
+                    <span className="text-sm font-medium">{user?.name}</span>
+                    <FaChevronDown className="h-4 w-4" />
+                  </button>
+                  {showProfileMenu && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1">
+                      <Link href="/portal/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        Profil
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        Çıkış Yap
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </header>
 
-          {/* Page Content */}
-          <main className="flex-1 p-6">
-            {children}
+          {/* Main Content Area */}
+          <main className="flex-1 p-4 mt-16 lg:mt-0">
+            <div className="max-w-7xl mx-auto">
+              {children}
+            </div>
           </main>
         </div>
       </div>
