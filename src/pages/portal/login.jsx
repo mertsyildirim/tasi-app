@@ -47,7 +47,12 @@ export default function Login() {
         localStorage.setItem('user', JSON.stringify({
           email: user.email,
           name: user.name,
-          role: user.role
+          role: user.role,
+          company: 'Taşı Lojistik',
+          phone: '+90 555 123 4567',
+          address: 'Levent, İstanbul',
+          taxNumber: '1234567890',
+          taxOffice: 'İstanbul'
         }));
 
         // Dashboard'a yönlendir
@@ -57,6 +62,7 @@ export default function Login() {
       }
     } catch (err) {
       setError('Giriş yapılırken bir hata oluştu');
+      console.error('Login error:', err);
     } finally {
       setLoading(false);
     }
