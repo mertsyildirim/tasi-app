@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaTruck } from 'react-icons/fa';
@@ -12,16 +12,27 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Login işleminden sonra sayfa yenilemesi gerekirse
+  useEffect(() => {
+    // localStorage'dan kullanıcı kontrolü
+    const user = localStorage.getItem('user') || localStorage.getItem('portal_user');
+    
+    if (user) {
+      // Kullanıcı zaten giriş yapmış, dashboard'a yönlendir
+      console.log("Kullanıcı zaten giriş yapmış, dashboard'a yönlendiriliyor...");
+      router.push('/portal/dashboard');
+    }
+  }, [router]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    // Basitleştirilmiş giriş işlemi
     try {
       console.log("Giriş yapılıyor...");
       
-      // Basitleştirilmiş kullanıcı objesi
+      // Demo kullanıcı objesi
       const user = {
         id: 1,
         name: 'Demo Kullanıcı',
@@ -29,18 +40,18 @@ export default function Login() {
         role: 'portal_user'
       };
 
-      // Tarayıcı önbelleğini temizleme işlemi
+      // Tarayıcı önbelleğini temizleme
       localStorage.clear();
       
-      // Kullanıcı bilgilerini kaydet
+      // Her iki anahtara da kullanıcı bilgilerini kaydet
       localStorage.setItem('user', JSON.stringify(user));
       localStorage.setItem('portal_user', JSON.stringify(user));
-      console.log("Kullanıcı bilgileri kaydedildi. Yönlendiriliyor...");
       
-      // Gecikmeli yönlendirme - tarayıcının localStorage'ı işlemesi için
-      setTimeout(() => {
-        window.location.href = "/portal/dashboard";
-      }, 500);
+      console.log("Kullanıcı bilgileri kaydedildi. Dashboard'a yönlendiriliyor...");
+      
+      // Next.js router ile yönlendirme
+      router.push('/portal/dashboard');
+      
     } catch (err) {
       console.error("Giriş hatası:", err);
       setError("Giriş yaparken bir hata oluştu. Lütfen tekrar deneyin.");
