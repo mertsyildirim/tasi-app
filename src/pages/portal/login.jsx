@@ -41,10 +41,17 @@ export default function Login() {
       localStorage.setItem('user', JSON.stringify(user));
       localStorage.setItem('portal_user', JSON.stringify(user));
       
-      console.log("Kullanıcı bilgileri kaydedildi. Dashboard'a yönlendiriliyor...");
+      // Debug log ekleyelim
+      console.log("Kullanıcı bilgileri kaydedildi:", {
+        user: localStorage.getItem('user'),
+        portal_user: localStorage.getItem('portal_user')
+      });
       
-      // Next.js router yerine doğrudan tarayıcı yönlendirmesi kullan
-      window.location.href = "/portal/dashboard";
+      console.log("Dashboard'a yönlendiriliyor...");
+      
+      // Tam URL kullanarak yönlendirme yapalım
+      const domain = window.location.origin; // Örn: https://portal.tasiapp.com
+      window.location.href = `${domain}/portal/dashboard`;
       
     } catch (err) {
       console.error("Giriş hatası:", err);

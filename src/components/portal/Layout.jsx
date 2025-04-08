@@ -29,6 +29,13 @@ export default function PortalLayout({ children, title = 'Taşıyıcı Portalı'
   useEffect(() => {
     const checkAuth = () => {
       try {
+        // Debug log ekleyelim
+        console.log("Layout: Kullanıcı kontrolü yapılıyor...");
+        console.log("localStorage içeriği:", {
+          user: localStorage.getItem('user'),
+          portal_user: localStorage.getItem('portal_user')
+        });
+        
         // Önce 'portal_user' anahtarını kontrol et
         let userData = localStorage.getItem('portal_user');
         
@@ -40,12 +47,20 @@ export default function PortalLayout({ children, title = 'Taşıyıcı Portalı'
         // Hala kullanıcı verisi yoksa, login sayfasına yönlendir
         if (!userData) {
           console.error('Kullanıcı verileri bulunamadı!');
-          router.push('/portal/login');
+          
+          // Eğer zaten login sayfasındaysak, yönlendirme yapmayalım
+          if (!window.location.pathname.includes('/portal/login')) {
+            console.log("Login sayfasına yönlendiriliyor...");
+            // Router yerine doğrudan tarayıcı yönlendirmesi kullan
+            window.location.href = "/portal/login";
+          }
           return;
         }
         
         // Kullanıcı verisini ayarla
-        setUser(JSON.parse(userData));
+        const parsedUserData = JSON.parse(userData);
+        console.log("Kullanıcı verisi bulundu:", parsedUserData);
+        setUser(parsedUserData);
         
         // Taşıyıcı durumunu kontrol et (örnek olarak)
         // Gerçek uygulamada bu bilgi API'den gelecektir
@@ -56,7 +71,12 @@ export default function PortalLayout({ children, title = 'Taşıyıcı Portalı'
         }
       } catch (error) {
         console.error('Auth check error:', error);
-        router.push('/portal/login');
+        
+        // Eğer zaten login sayfasındaysak, yönlendirme yapmayalım
+        if (!window.location.pathname.includes('/portal/login')) {
+          // Router yerine doğrudan tarayıcı yönlendirmesi kullan
+          window.location.href = "/portal/login";
+        }
       } finally {
         setLoading(false);
       }
