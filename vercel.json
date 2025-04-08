@@ -3,10 +3,6 @@
   "buildCommand": "next build",
   "rewrites": [
     {
-      "source": "/",
-      "destination": "/portal/login"
-    },
-    {
       "source": "/portal",
       "destination": "/portal/login"
     },
