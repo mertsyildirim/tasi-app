@@ -5,22 +5,8 @@ import { FaTruck, FaBox, FaMoneyBillWave, FaUsers, FaChartLine, FaSearch, FaEye 
 
 export default function Dashboard() {
   const router = useRouter();
-  // Demo kullanıcısını doğrudan tanımla - böylece kimlik doğrulama mekanizmasına gerek kalmayacak
-  const demoUser = {
-    id: 1,
-    name: 'Demo Kullanıcı',
-    email: 'demo@tasiapp.com',
-    phone: '+90 555 123 4567',
-    company: 'Taşı Lojistik A.Ş.',
-    taxNumber: '1234567890',
-    taxOffice: 'İstanbul',
-    address: 'Atatürk Mah. İstiklal Cad. No: 34, İstanbul, Türkiye',
-    role: 'portal_user'
-  };
-  
-  const [user, setUser] = useState(demoUser);
-  const [loading, setLoading] = useState(false); // Direkt false yapıyoruz, kimlik doğrulama yapmıyoruz
-  const [authError, setAuthError] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const [shipments] = useState({
     active: [
@@ -35,39 +21,20 @@ export default function Dashboard() {
     ]
   });
 
-  // Portal kullanıcı verilerini kontrol et - Çok basitleştirdik
   useEffect(() => {
-    console.log("Demo kullanıcı hazır - Oturum kontrolü yapılmıyor");
-    try {
-      // Sadece demo kullanıcımızı saklamaya çalışalım
-      localStorage.setItem('portal_user', JSON.stringify(demoUser));
-      console.log("Demo kullanıcı localStorage'a kaydedildi");
-    } catch (e) {
-      console.warn("LocalStorage hatası, ancak sorun değil", e);
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      router.push('/portal/login');
+      return;
     }
-  }, []);
+    setUser(JSON.parse(userData));
+    setLoading(false);
+  }, [router]);
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
-  if (authError) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-500 text-xl mb-4">Yetkilendirme Hatası</div>
-          <p className="mb-4">Portal için giriş yapmanız gerekiyor.</p>
-          <button 
-            onClick={() => router.push('/portal/login')}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Giriş Sayfasına Git
-          </button>
-        </div>
       </div>
     );
   }

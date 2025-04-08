@@ -29,38 +29,12 @@ export default function PortalLayout({ children, title = 'Taşıyıcı Portalı'
   useEffect(() => {
     const checkAuth = () => {
       try {
-        // Debug log ekleyelim
-        console.log("Layout: Kullanıcı kontrolü yapılıyor...");
-        console.log("localStorage içeriği:", {
-          user: localStorage.getItem('user'),
-          portal_user: localStorage.getItem('portal_user')
-        });
-        
-        // Önce 'portal_user' anahtarını kontrol et
-        let userData = localStorage.getItem('portal_user');
-        
-        // Eğer 'portal_user' yoksa, 'user' anahtarını kontrol et
+        const userData = localStorage.getItem('user');
         if (!userData) {
-          userData = localStorage.getItem('user');
-        }
-        
-        // Hala kullanıcı verisi yoksa, login sayfasına yönlendir
-        if (!userData) {
-          console.error('Kullanıcı verileri bulunamadı!');
-          
-          // Eğer zaten login sayfasındaysak, yönlendirme yapmayalım
-          if (!window.location.pathname.includes('/portal/login')) {
-            console.log("Login sayfasına yönlendiriliyor...");
-            // Router yerine doğrudan tarayıcı yönlendirmesi kullan
-            window.location.href = "/portal/login";
-          }
+          router.push('/portal/login');
           return;
         }
-        
-        // Kullanıcı verisini ayarla
-        const parsedUserData = JSON.parse(userData);
-        console.log("Kullanıcı verisi bulundu:", parsedUserData);
-        setUser(parsedUserData);
+        setUser(JSON.parse(userData));
         
         // Taşıyıcı durumunu kontrol et (örnek olarak)
         // Gerçek uygulamada bu bilgi API'den gelecektir
@@ -71,12 +45,7 @@ export default function PortalLayout({ children, title = 'Taşıyıcı Portalı'
         }
       } catch (error) {
         console.error('Auth check error:', error);
-        
-        // Eğer zaten login sayfasındaysak, yönlendirme yapmayalım
-        if (!window.location.pathname.includes('/portal/login')) {
-          // Router yerine doğrudan tarayıcı yönlendirmesi kullan
-          window.location.href = "/portal/login";
-        }
+        router.push('/portal/login');
       } finally {
         setLoading(false);
       }
@@ -96,8 +65,6 @@ export default function PortalLayout({ children, title = 'Taşıyıcı Portalı'
   }, [router]);
 
   const handleLogout = () => {
-    // Her iki anahtarı da temizle
-    localStorage.removeItem('portal_user');
     localStorage.removeItem('user');
     router.push('/portal/login');
   };
