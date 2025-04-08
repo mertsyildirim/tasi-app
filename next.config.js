@@ -22,36 +22,6 @@ const nextConfig = {
             value: 'tasiapp.com'
           }
         ]
-      },
-      {
-        source: '/',
-        destination: '/portal/login',
-        has: [
-          {
-            type: 'host',
-            value: 'portal.tasiapp.com'
-          }
-        ]
-      },
-      {
-        source: '/portal',
-        destination: '/portal/login',
-        has: [
-          {
-            type: 'host',
-            value: 'portal.tasiapp.com'
-          }
-        ]
-      },
-      {
-        source: '/dashboard',
-        destination: '/portal/dashboard',
-        has: [
-          {
-            type: 'host',
-            value: 'portal.tasiapp.com'
-          }
-        ]
       }
     ];
   },
