@@ -29,7 +29,7 @@ export default function PortalLayout({ children, title = 'Taşıyıcı Portalı'
   useEffect(() => {
     const checkAuth = () => {
       try {
-        const userData = localStorage.getItem('user');
+        const userData = localStorage.getItem('portal_user');
         if (!userData) {
           router.push('/portal/login');
           return;
@@ -65,7 +65,7 @@ export default function PortalLayout({ children, title = 'Taşıyıcı Portalı'
   }, [router]);
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
+    localStorage.removeItem('portal_user');
     router.push('/portal/login');
   };
 

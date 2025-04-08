@@ -25,6 +25,22 @@ export default function Login() {
       console.log("Kimlik doğrulama başarılı!");
 
       try {
+        // Demo kullanıcı bilgilerini sakla - localStorage'a kaydet
+        const user = {
+          id: 1,
+          name: 'Demo Kullanıcı',
+          email: 'demo@tasiapp.com',
+          phone: '+90 555 123 4567',
+          company: 'Taşı Lojistik A.Ş.',
+          taxNumber: '1234567890',
+          taxOffice: 'İstanbul',
+          address: 'Atatürk Mah. İstiklal Cad. No: 34, İstanbul, Türkiye',
+          role: 'portal_user'
+        };
+        
+        localStorage.setItem('portal_user', JSON.stringify(user));
+        console.log("Kullanıcı bilgileri kaydedildi");
+        
         // Doğrudan dashboard'a git - basit çözüm
         console.log("Doğrudan dashboard'a yönlendiriliyor...");
         window.location.href = "/portal/dashboard";
