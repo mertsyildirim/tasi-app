@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { FaTruck, FaBoxOpen, FaMapMarkedAlt, FaShieldAlt, FaClock, FaHandshake, FaLocationArrow, FaBuilding, FaHome, FaWarehouse, FaSpinner, FaPallet, FaBox, FaImage, FaTrash, FaMapMarkerAlt, FaCheck, FaStar, FaPhone, FaInfoCircle, FaCheckCircle, FaEnvelope, FaMapPin, FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaSnowflake, FaBolt, FaTools, FaLock } from 'react-icons/fa'
+import { FaTruck, FaBoxOpen, FaMapMarkedAlt, FaShieldAlt, FaClock, FaHandshake, FaLocationArrow, FaBuilding, FaHome, FaWarehouse, FaSpinner, FaPallet, FaBox, FaImage, FaTrash, FaMapMarkerAlt, FaCheck, FaStar, FaPhone, FaInfoCircle, FaCheckCircle, FaEnvelope, FaMapPin, FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaSnowflake, FaBolt, FaTools, FaLock, FaMoneyBillWave, FaMapMarked } from 'react-icons/fa'
 import { GoogleMap, useLoadScript, Marker, DirectionsRenderer, Autocomplete } from '@react-google-maps/api'
 import Link from 'next/link'
 
@@ -11,33 +11,30 @@ const libraries = ["places"];
 const GOOGLE_MAPS_API_KEY = "AIzaSyAKht3SqaVJpufUdq-vVQEfBEQKejT9Z8k";
 
 // Step Bar Component
-const StepBar = ({ currentStep }) => (
-  <div className="mb-8">
-    <div className="flex justify-between items-center relative">
-      <div className="absolute top-4 left-[10%] right-[10%] flex z-0">
-        <div className={`h-0.5 flex-1 mx-4 ${currentStep > 0 ? 'bg-orange-500' : 'bg-gray-200'}`} />
-        <div className={`h-0.5 flex-1 mx-4 ${currentStep > 1 ? 'bg-orange-500' : 'bg-gray-200'}`} />
-        <div className={`h-0.5 flex-1 mx-4 ${currentStep > 2 ? 'bg-orange-500' : 'bg-gray-200'}`} />
-        <div className={`h-0.5 flex-1 mx-4 ${currentStep > 3 ? 'bg-orange-500' : 'bg-gray-200'}`} />
-      </div>
-      
-      <div className="flex justify-between items-center w-full relative z-10">
-        {['Taşıma Türü', 'Taşıma Detayları', 'İletişim', 'Taşıyıcı', 'Ödeme'].map((step, index) => (
-          <div key={index} className="flex flex-col items-center">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-white ${
-              index <= currentStep ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-500'
-            }`}>
-              {index + 1}
-            </div>
-            <div className="text-xs mt-2 font-medium text-center whitespace-nowrap">
-              {step}
-            </div>
-          </div>
-        ))}
+const StepBar = ({ currentStep }) => {
+  const steps = ['Taşıma Türü', 'Taşıma Detayları', 'İletişim', 'Taşıyıcı', 'Ödeme'];
+  
+  return (
+    <div className="mb-8">
+      <div className="relative pt-2">
+        {/* Progress Bar */}
+        <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+          <div 
+            className="bg-orange-500 h-full transition-all duration-300 ease-in-out"
+            style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
+          />
+        </div>
+        
+        {/* Step Counter and Name */}
+        <div className="mt-3 text-center">
+          <span className="text-sm font-medium text-gray-600">
+            Adım {currentStep + 1}/{steps.length} - {steps[currentStep]}
+          </span>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default function MusteriSayfasi() {
   const [pickupAddress, setPickupAddress] = useState('')
@@ -70,6 +67,9 @@ export default function MusteriSayfasi() {
   const [showWaitingApprovalModal, setShowWaitingApprovalModal] = useState(false)
   const [showCarrierDetailsModal, setShowCarrierDetailsModal] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [selectedService, setSelectedService] = useState(null);
+  const [serviceModalStep, setServiceModalStep] = useState(0);
 
   // Google Maps yükleme işlemi
   const { isLoaded, loadError } = useLoadScript({
@@ -333,13 +333,13 @@ export default function MusteriSayfasi() {
   }
 
   const handleTransportTypeSelect = (type) => {
-    setSelectedTransportType(type)
-    setShowModal(false)
-    setCurrentStep(1)
+    setSelectedTransportType(type);
+    setShowModal(false);
+    setCurrentStep(1); // Taşıma detayları adımı için 1
     setTimeout(() => {
-      setShowSummaryModal(true)
-    }, 200)
-  }
+      setShowSummaryModal(true);
+    }, 200);
+  };
 
   const handleFindCarrier = () => {
     setShowPhoneModal(true)
@@ -348,22 +348,23 @@ export default function MusteriSayfasi() {
   }
 
   const handleBackToSummary = () => {
-    setShowPhoneModal(false)
-    setOtpSent(false)
-    setOtpCode('')
-    setCurrentStep(1)
+    setShowPhoneModal(false);
+    setShowOTPModal(false);
+    setOtpSent(false);
+    setOtpCode('');
+    setCurrentStep(1);
     setTimeout(() => {
-      setShowSummaryModal(true)
-    }, 200)
-  }
+      setShowSummaryModal(true);
+    }, 200);
+  };
 
   const handleBackToTransportType = () => {
-    setShowSummaryModal(false)
-    setCurrentStep(0)
+    setShowSummaryModal(false);
+    setCurrentStep(0);
     setTimeout(() => {
-      setShowModal(true)
-    }, 200)
-  }
+      setShowModal(true);
+    }, 200);
+  };
 
   const handlePhoneVerification = () => {
     if (otpCode.length === 6) {
@@ -404,6 +405,106 @@ export default function MusteriSayfasi() {
     }
   }, [showModal])
 
+  // ESC tuşu için event listener
+  useEffect(() => {
+    const handleEsc = (event) => {
+      if (event.key === 'Escape') {
+        handleCloseModal();
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+
+    return () => {
+      window.removeEventListener('keydown', handleEsc);
+    };
+  }, [showModal, showSummaryModal, showPhoneModal, showSearchingModal, showWaitingApprovalModal, showCarrierDetailsModal, showPaymentModal, showPaymentSuccessModal]);
+
+  // Modal kapatma fonksiyonu
+  const handleCloseModal = () => {
+    // Sadece açık olan modalı kapat
+    if (showPaymentSuccessModal) {
+      setShowPaymentSuccessModal(false);
+    } else if (showPaymentModal) {
+      setShowPaymentModal(false);
+    } else if (showCarrierDetailsModal) {
+      setShowCarrierDetailsModal(false);
+    } else if (showWaitingApprovalModal) {
+      setShowWaitingApprovalModal(false);
+    } else if (showSearchingModal) {
+      setShowSearchingModal(false);
+    } else if (showPhoneModal) {
+      setShowPhoneModal(false);
+    } else if (showSummaryModal) {
+      setShowSummaryModal(false);
+    } else if (showModal) {
+      setShowModal(false);
+    }
+  };
+
+  // Devam Et butonuna tıklandığında
+  const handleContinue = () => {
+    if (pickupPlace && deliveryPlace) {
+      // Mevcut adıma göre doğru modalı aç
+      switch (currentStep) {
+        case 0:
+          setShowModal(true);
+          break;
+        case 1:
+          setShowSummaryModal(true);
+          break;
+        case 2:
+          setShowPhoneModal(true);
+          break;
+        case 3:
+          setShowCarrierDetailsModal(true);
+          break;
+        case 4:
+          setShowPaymentModal(true);
+          break;
+        default:
+          setShowModal(true);
+          setCurrentStep(0);
+      }
+    }
+  };
+
+  // Mevcut onClick fonksiyonlarını güncelle
+  const closeButtons = {
+    showModal: () => setShowModal(false),
+    showSummaryModal: () => setShowSummaryModal(false),
+    showPhoneModal: () => setShowPhoneModal(false),
+    showSearchingModal: () => setShowSearchingModal(false),
+    showWaitingApprovalModal: () => setShowWaitingApprovalModal(false),
+    showCarrierDetailsModal: () => setShowCarrierDetailsModal(false),
+    showPaymentModal: () => setShowPaymentModal(false),
+    showPaymentSuccessModal: () => setShowPaymentSuccessModal(false)
+  };
+
+  const handleBackToPhone = () => {
+    setShowSearchingModal(false);
+    setShowWaitingApprovalModal(false);
+    setCurrentStep(2);
+    setTimeout(() => {
+      setShowPhoneModal(true);
+    }, 200);
+  };
+
+  const handleBackToCarrierSearch = () => {
+    setShowCarrierDetailsModal(false);
+    setCurrentStep(3);
+    setTimeout(() => {
+      setShowSearchingModal(true);
+    }, 200);
+  };
+
+  const handleBackToCarrierDetails = () => {
+    setShowPaymentModal(false);
+    setCurrentStep(3);
+    setTimeout(() => {
+      setShowCarrierDetailsModal(true);
+    }, 200);
+  };
+
   return (
     <main className={`min-h-screen bg-gray-100 flex flex-col ${showModal || showSummaryModal || showPhoneModal ? 'modal-blur' : ''}`}>
       <div className="flex-grow">
@@ -412,6 +513,7 @@ export default function MusteriSayfasi() {
           <div className="container mx-auto px-4 flex justify-between items-center">
             <h1 className="text-2xl font-bold text-orange-600">Taşı.app</h1>
             <div className="hidden md:flex space-x-6 items-center">
+              <a href="#" className="text-gray-600 hover:text-orange-600 transition">Anasayfa</a>
               <a href="#services" className="text-gray-600 hover:text-orange-600 transition">Hizmetlerimiz</a>
               <a href="#features" className="text-gray-600 hover:text-orange-600 transition">Neden Biz?</a>
               <a href="#" className="text-gray-600 hover:text-orange-600 transition">İletişim</a>
@@ -429,18 +531,33 @@ export default function MusteriSayfasi() {
         {/* Hero Section */}
         <div className="w-full bg-gradient-to-r from-orange-600 to-orange-500 text-white py-20">
           <div className="container mx-auto px-4">
-            <div className="flex flex-col md:flex-row">
+            <div className="container mx-auto px-4 flex flex-col md:flex-row items-center py-12 md:py-24">
               <div className="md:w-1/2 mb-8 md:mb-0">
-                <h1 className="text-4xl md:text-5xl font-bold mb-4">Taşıma İşleriniz için Tek Adres</h1>
-                <p className="text-xl mb-6">Yükünüzü güvenle taşıyoruz. Hemen taşıyıcı bulun ve anında fiyat alın.</p>
-                <button 
-                  className="bg-white text-orange-600 font-bold py-3 px-8 rounded-lg shadow-lg hover:shadow-xl transition duration-300"
+                <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
+                  Güvenli ve Hızlı Taşımacılık Hizmeti
+                </h1>
+                <p className="text-gray-600 text-lg mb-8">
+                  Türkiye'nin her yerine güvenli, hızlı ve ekonomik taşımacılık hizmeti. Tek tıkla taşıyıcı bulun, anlık takip edin.
+                </p>
+                <button
+                  onClick={() => setShowModal(true)}
+                  className="bg-orange-500 text-white px-8 py-3 rounded-xl hover:bg-orange-600 transition-all transform hover:scale-105 flex items-center text-lg"
                 >
-                  Hizmetlerimizi Keşfedin
+                  Taşıyıcı Bul
+                  <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </button>
               </div>
               <div className="md:w-1/2 flex justify-center md:justify-end">
-                <img src="/hero-image.png" alt="Taşıma Hizmeti" className="max-h-80" />
+                <img 
+                  src="/hero-truck.png" 
+                  alt="Taşıma Hizmeti" 
+                  className="max-w-full md:max-w-[90%] h-auto max-h-[400px] object-contain animate-float"
+                  style={{
+                    filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.1))'
+                  }}
+                />
               </div>
             </div>
           </div>
@@ -537,18 +654,7 @@ export default function MusteriSayfasi() {
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'bg-orange-500 text-white hover:bg-orange-600'
                     }`}
-                    onClick={() => {
-                      if (pickupPlace && deliveryPlace) {
-                        setShowModal(true);
-                        // Haritayı mevcut konumunda tut
-                        const currentCenter = map?.getCenter();
-                        const currentZoom = map?.getZoom();
-                        setTimeout(() => {
-                          map?.setCenter(currentCenter);
-                          map?.setZoom(currentZoom);
-                        }, 100);
-                      }
-                    }}
+                    onClick={handleContinue}
                     disabled={!pickupPlace || !deliveryPlace}
                   >
                     Devam Et
@@ -641,97 +747,174 @@ export default function MusteriSayfasi() {
         </div>
 
         {/* Services Section */}
-        <div id="services" className="container mx-auto px-4 py-8 md:py-16">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-12">Hizmetlerimiz</h2>
+        <div id="services" className="container mx-auto px-4 py-16 md:py-24">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">Hizmetlerimiz</h2>
+          <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
+            İhtiyacınıza en uygun taşıma hizmetini seçin, size en yakın taşıyıcıyı anında bulalım.
+          </p>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
-              <div className="bg-orange-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-4">
-                <FaWarehouse className="text-orange-600 text-2xl" />
-              </div>
-              <h3 className="text-xl font-bold mb-2">Depo Taşıma</h3>
-              <p className="text-gray-600">Depo ve antrepo taşıma hizmetlerimizle büyük hacimli eşyalarınızı güvenle taşıyoruz.</p>
-              <button 
-                className="mt-4 text-orange-500 font-semibold hover:text-orange-700 w-full md:w-auto"
-                onClick={() => handleTransportTypeSelect('Depo Taşıma')}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              {
+                id: 'express',
+                title: 'Express Taşıma',
+                icon: <FaBolt className="text-2xl" />,
+                description: 'Acil gönderileriniz için hızlı ve öncelikli taşıma hizmeti.',
+                soon: false,
+                color: 'bg-blue-500'
+              },
+              {
+                id: 'kurye',
+                title: 'Kurye Hizmeti',
+                icon: <FaBox className="text-2xl" />,
+                description: 'Hızlı ve güvenli kurye hizmetleri ile küçük paketlerinizi aynı gün teslim ediyoruz.',
+                soon: false,
+                color: 'bg-purple-500'
+              },
+              {
+                id: 'koli',
+                title: 'Koli Taşıma',
+                icon: <FaBoxOpen className="text-2xl" />,
+                description: 'Küçük ve orta boy kolileriniz için güvenli taşıma çözümleri.',
+                soon: false,
+                color: 'bg-orange-500'
+              },
+              {
+                id: 'palet',
+                title: 'Paletli Taşıma',
+                icon: <FaPallet className="text-2xl" />,
+                description: 'Paletlenmiş ürünleriniz için profesyonel taşıma hizmeti.',
+                soon: false,
+                color: 'bg-green-500'
+              },
+              {
+                id: 'parsiyel',
+                title: 'Parsiyel Taşıma',
+                icon: <FaTruck className="text-2xl" />,
+                description: 'Farklı müşterilerin yüklerini aynı araçta taşıyarak ekonomik çözümler.',
+                soon: false,
+                color: 'bg-red-500'
+              },
+              {
+                id: 'makine',
+                title: 'Makine Taşıma',
+                icon: <FaTools className="text-2xl" />,
+                description: 'Ağır makineler için özel ekipmanlarla güvenli taşıma hizmeti.',
+                soon: true,
+                color: 'bg-gray-400'
+              },
+              {
+                id: 'lowbed',
+                title: 'Lowbed Taşıma',
+                icon: <FaTruck className="text-2xl" />,
+                description: 'Ağır ve büyük yükler için lowbed ile özel taşıma çözümleri.',
+                soon: true,
+                color: 'bg-gray-400'
+              },
+              {
+                id: 'konteyner',
+                title: 'Konteyner Taşıma',
+                icon: <FaShieldAlt className="text-2xl" />,
+                description: 'Uluslararası konteyner taşımacılığı ve gümrük hizmetleri.',
+                soon: true,
+                color: 'bg-gray-400'
+              },
+              {
+                id: 'sogukzincir',
+                title: 'Soğuk Zincir',
+                icon: <FaSnowflake className="text-2xl" />,
+                description: 'Sıcaklık kontrollü taşıma gerektiren ürünler için özel çözümler.',
+                soon: true,
+                color: 'bg-gray-400'
+              }
+            ].map((service) => (
+              <div 
+                key={service.id}
+                className={`bg-white rounded-2xl overflow-hidden shadow-lg transition-all duration-300 ${
+                  !service.soon ? 'hover:shadow-2xl hover:-translate-y-1 cursor-pointer' : 'opacity-75'
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!service.soon) {
+                    setSelectedService(service.title);
+                    setServiceModalStep(0);
+                    setShowMapModal(true);
+                  }
+                }}
               >
-                Taşıyıcı Bul &rarr;
-              </button>
-            </div>
-            
-            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
-              <div className="bg-orange-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-4">
-                <FaPallet className="text-orange-600 text-2xl" />
+                <div className={`${service.color} p-6 flex items-center justify-between`}>
+                  <div className="text-white text-2xl">{service.icon}</div>
+                  {service.soon && (
+                    <span className="bg-white/20 text-white text-xs font-medium px-2.5 py-1 rounded-full">
+                      Yakında
+                    </span>
+                  )}
+                </div>
+                <div className="p-6">
+                  <h3 className="text-xl font-bold mb-3">{service.title}</h3>
+                  <p className={`text-sm ${service.soon ? 'text-gray-400' : 'text-gray-600'} mb-4`}>
+                    {service.description}
+                  </p>
+                  {!service.soon && (
+                    <div className="flex items-center text-sm font-medium text-gray-900 hover:text-orange-500">
+                      Taşıyıcı Bul
+                      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
               </div>
-              <h3 className="text-xl font-bold mb-2">Paletli Taşıma</h3>
-              <p className="text-gray-600">Paletlenmiş ürünlerinizi özenle taşıyor, lojistik sürecinizi kolaylaştırıyoruz.</p>
-              <button 
-                className="mt-4 text-orange-500 font-semibold hover:text-orange-700 w-full md:w-auto"
-                onClick={() => handleTransportTypeSelect('Paletli Taşıma')}
-              >
-                Taşıyıcı Bul &rarr;
-              </button>
-            </div>
-            
-            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
-              <div className="bg-orange-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-4">
-                <FaBox className="text-orange-600 text-2xl" />
-              </div>
-              <h3 className="text-xl font-bold mb-2">Koli Taşıma</h3>
-              <p className="text-gray-600">Küçük ve orta boy kolilerinizin teslimatını hızlı ve güvenli bir şekilde gerçekleştiriyoruz.</p>
-              <button 
-                className="mt-4 text-orange-500 font-semibold hover:text-orange-700 w-full md:w-auto"
-                onClick={() => handleTransportTypeSelect('Koli Taşıma')}
-              >
-                Taşıyıcı Bul &rarr;
-              </button>
-            </div>
-            
-            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
-              <div className="bg-orange-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-4">
-                <FaTruck className="text-orange-600 text-2xl" />
-              </div>
-              <h3 className="text-xl font-bold mb-2">Parsiyel Taşıma</h3>
-              <p className="text-gray-600">Farklı müşterilerin yüklerini aynı araçta taşıyarak ekonomik çözümler sunuyoruz.</p>
-              <button 
-                className="mt-4 text-orange-500 font-semibold hover:text-orange-700 w-full md:w-auto"
-                onClick={() => handleTransportTypeSelect('Parsiyel Taşıma')}
-              >
-                Taşıyıcı Bul &rarr;
-              </button>
-            </div>
+            ))}
           </div>
         </div>
 
         {/* Features Section */}
-        <div className="bg-gray-50 py-10 md:py-16">
-          <div className="container mx-auto px-4">
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-12">Neden Bizi Tercih Etmelisiniz?</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-              <div className="flex flex-col items-center text-center p-6 bg-white rounded-lg shadow-sm">
-                <div className="bg-orange-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-4">
-                  <FaShieldAlt className="text-orange-600 text-2xl" />
-                </div>
-                <h3 className="text-xl font-bold mb-2">Güvenli Taşıma</h3>
-                <p className="text-gray-600">Eşyalarınız sigortalı olarak taşınır, herhangi bir hasar durumunda tam koruma sağlıyoruz.</p>
+        <div id="features" className="container mx-auto px-4 py-16 md:py-24">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">Neden Bizi Tercih Etmelisiniz?</h2>
+          <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
+            Taşı, yenilikçi yaklaşımı ve kullanıcı dostu arayüzü ile taşımacılık sektörüne yeni bir soluk getiriyor.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="bg-white p-6 rounded-2xl shadow-lg">
+              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-4">
+                <FaClock className="text-2xl text-orange-500" />
               </div>
-              
-              <div className="flex flex-col items-center text-center p-6 bg-white rounded-lg shadow-sm">
-                <div className="bg-orange-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-4">
-                  <FaClock className="text-orange-600 text-2xl" />
-                </div>
-                <h3 className="text-xl font-bold mb-2">Hızlı Teslimat</h3>
-                <p className="text-gray-600">Zamanında teslimat garantisi ile yüklerinizi belirlenen sürede yerine ulaştırıyoruz.</p>
+              <h3 className="text-xl font-bold mb-2">7/24 Hizmet</h3>
+              <p className="text-gray-600">
+                Günün her saati taşıma ihtiyaçlarınız için yanınızdayız. Acil durumlar için öncelikli destek sağlıyoruz.
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-lg">
+              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-4">
+                <FaShieldAlt className="text-2xl text-orange-500" />
               </div>
-              
-              <div className="flex flex-col items-center text-center p-6 bg-white rounded-lg shadow-sm">
-                <div className="bg-orange-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-4">
-                  <FaHandshake className="text-orange-600 text-2xl" />
-                </div>
-                <h3 className="text-xl font-bold mb-2">Profesyonel Ekip</h3>
-                <p className="text-gray-600">Deneyimli personelimiz ile taşıma sürecinin her aşamasında profesyonel hizmet sunuyoruz.</p>
+              <h3 className="text-xl font-bold mb-2">Güvenli Taşıma</h3>
+              <p className="text-gray-600">
+                Eşyalarınız sigortalı ve güvende. Profesyonel taşıyıcılarımız özenle seçiliyor ve düzenli denetleniyor.
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-lg">
+              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-4">
+                <FaMoneyBillWave className="text-2xl text-orange-500" />
               </div>
+              <h3 className="text-xl font-bold mb-2">Uygun Fiyat</h3>
+              <p className="text-gray-600">
+                Rekabetçi fiyatlarla kaliteli hizmet. Size en yakın taşıyıcıyı bularak maliyetleri optimize ediyoruz.
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-lg">
+              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-4">
+                <FaMapMarkedAlt className="text-2xl text-orange-500" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Anlık Takip</h3>
+              <p className="text-gray-600">
+                Eşyalarınızın konumunu gerçek zamanlı takip edin. Taşıma sürecini harita üzerinden canlı olarak izleyin.
+              </p>
             </div>
           </div>
         </div>
@@ -804,24 +987,24 @@ export default function MusteriSayfasi() {
         <div className="fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black bg-opacity-50"></div>
           <div className="absolute inset-0 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl p-8 max-w-4xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto relative">
+            <div className="bg-white rounded-2xl p-8 w-full max-w-4xl mx-4 shadow-2xl max-h-[90vh] overflow-y-auto relative">
               <StepBar currentStep={currentStep} />
               
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-3xl font-bold text-gray-800">Taşıma Türünü Seçin</h2>
                 <button
                   className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                  onClick={() => setShowModal(false)}
+                  onClick={handleCloseModal}
                 >
                   <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
+
+              <p className="text-gray-600 text-sm sm:text-base mb-4 sm:mb-6">Yükünüze en uygun taşıma türünü seçin. Her türlü taşıma ihtiyacınız için özel çözümler sunuyoruz.</p>
               
-              <p className="text-gray-600 mb-6">Yükünüze en uygun taşıma türünü seçin. Her türlü taşıma ihtiyacınız için özel çözümler sunuyoruz.</p>
-              
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {[
                   {
                     id: 'express',
@@ -960,7 +1143,7 @@ export default function MusteriSayfasi() {
                 <h2 className="text-3xl font-bold text-gray-800">Taşıma Detayları</h2>
                 <button
                   className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                  onClick={() => setShowSummaryModal(false)}
+                  onClick={handleCloseModal}
                 >
                   <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1163,10 +1346,10 @@ export default function MusteriSayfasi() {
                 </div>
               </div>
 
-              <div className="mt-8 flex justify-between items-center border-t pt-6">
+              <div className="mt-8 flex justify-between items-center">
                 <button
                   className="px-6 py-2 text-orange-500 border border-orange-500 rounded-lg hover:bg-orange-50 transition flex items-center"
-                  onClick={handleBackToTransportType}
+                  onClick={handleCloseModal}
                 >
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -1192,34 +1375,34 @@ export default function MusteriSayfasi() {
         <div className="fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black bg-opacity-50"></div>
           <div className="absolute inset-0 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl p-8 max-w-4xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto relative modal-enter-active">
+            <div className="bg-white rounded-2xl p-8 w-full max-w-4xl mx-4 shadow-2xl max-h-[90vh] overflow-y-auto relative">
               <StepBar currentStep={currentStep} />
 
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-3xl font-bold text-gray-800">İletişim Bilgileri</h2>
+              <div className="flex justify-between items-center mb-4 sm:mb-6">
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">İletişim Bilgileri</h2>
                 <button
                   className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                  onClick={() => setShowPhoneModal(false)}
+                  onClick={handleCloseModal}
                 >
-                  <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
                 {/* Sol Taraf - Telefon ve Kod Doğrulama */}
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   <div>
-                    <h3 className="font-semibold text-lg mb-3">Telefon Numarası</h3>
-                    <div className="space-y-4">
+                    <h3 className="font-semibold text-base sm:text-lg mb-2 sm:mb-3">Telefon Numarası</h3>
+                    <div className="space-y-3 sm:space-y-4">
                       <div className="flex items-center">
-                        <span className="bg-gray-100 p-3 rounded-l-lg border border-r-0 border-gray-300 text-gray-600">+90</span>
+                        <span className="bg-gray-100 p-2 sm:p-3 rounded-l-lg border border-r-0 border-gray-300 text-gray-600 text-sm sm:text-base">+90</span>
                         <input
                           type="text"
                           value={formattedPhoneNumber}
                           onChange={handlePhoneChange}
-                          className="flex-1 p-3 border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          className="flex-1 p-2 sm:p-3 border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm sm:text-base"
                           placeholder="5XX XXX XX XX"
                           disabled={otpSent}
                         />
@@ -1281,9 +1464,9 @@ export default function MusteriSayfasi() {
                 </div>
 
                 {/* Sağ Taraf - Bilgilendirme */}
-                <div className="space-y-6">
-                  <div className="bg-orange-50 p-6 rounded-lg">
-                    <h3 className="font-semibold text-lg mb-3">Neden Telefon Numarası?</h3>
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="bg-orange-50 p-4 sm:p-6 rounded-lg">
+                    <h3 className="font-semibold text-base sm:text-lg mb-2 sm:mb-3">Neden Telefon Numarası?</h3>
                     <div className="space-y-4">
                       <p className="text-gray-600">
                         Telefon numaranız:
@@ -1310,12 +1493,12 @@ export default function MusteriSayfasi() {
                 </div>
               </div>
 
-              <div className="mt-8 flex justify-between items-center border-t pt-6">
+              <div className="mt-6 sm:mt-8 flex justify-between items-center border-t pt-4 sm:pt-6">
                 <button
-                  className="px-6 py-2 text-orange-500 border border-orange-500 rounded-lg hover:bg-orange-50 transition flex items-center"
-                  onClick={handleBackToSummary}
+                  className="px-4 sm:px-6 py-2 text-orange-500 border border-orange-500 rounded-lg hover:bg-orange-50 transition flex items-center text-sm sm:text-base"
+                  onClick={handleCloseModal}
                 >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
                   Geri
@@ -1460,7 +1643,7 @@ export default function MusteriSayfasi() {
             <div className="flex flex-col space-y-2 mt-6">
               <button
                 className="w-full px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
-                onClick={() => setShowWaitingApprovalModal(false)}
+                onClick={handleCloseModal}
               >
                 İptal
               </button>
@@ -1484,7 +1667,7 @@ export default function MusteriSayfasi() {
               <h2 className="text-3xl font-bold text-gray-800">Taşıyıcı Onayı</h2>
               <button
                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                onClick={() => setShowCarrierDetailsModal(false)}
+                onClick={handleCloseModal}
               >
                 <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1648,40 +1831,13 @@ export default function MusteriSayfasi() {
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-8 max-w-4xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto relative">
-            {/* Step Bar */}
-            <div className="mb-8">
-              <div className="flex justify-between items-center relative">
-                {['Taşıma Türü', 'Taşıma Detayları', 'İletişim', 'Taşıyıcı', 'Ödeme'].map((step, index) => (
-                  <div key={index} className="flex flex-col items-center z-10 bg-white">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      index <= currentStep ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-500'
-                    }`}>
-                      {index + 1}
-                    </div>
-                    <div className="text-xs mt-2 font-medium text-center whitespace-nowrap">
-                      {step}
-                    </div>
-                  </div>
-                ))}
-                {/* Çizgileri ayrı bir katmanda render et */}
-                <div className="absolute top-4 left-0 right-0 flex justify-between z-0">
-                  {[0, 1, 2, 3].map((index) => (
-                    <div
-                      key={index}
-                      className={`h-0.5 w-full mx-4 ${
-                        index < currentStep ? 'bg-orange-500' : 'bg-gray-200'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
+            <StepBar currentStep={currentStep} />
 
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-3xl font-bold text-gray-800">Ödeme</h2>
               <button
                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                onClick={() => setShowPaymentModal(false)}
+                onClick={handleCloseModal}
               >
                 <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1926,11 +2082,295 @@ export default function MusteriSayfasi() {
                 </button>
                 <button
                   className="w-full px-6 py-3 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
-                  onClick={() => setShowPaymentSuccessModal(false)}
+                  onClick={handleCloseModal}
                 >
                   Kapat
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Yeni Map Modal */}
+      {showMapModal && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black bg-opacity-50"></div>
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl p-8 w-full max-w-6xl mx-4 shadow-2xl max-h-[90vh] overflow-y-auto relative">
+              {/* Step Bar */}
+              <div className="mb-8">
+                <div className="flex items-center justify-center space-x-2">
+                  <div className={`flex items-center ${serviceModalStep >= 0 ? 'text-orange-500' : 'text-gray-400'}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
+                      serviceModalStep >= 0 ? 'border-orange-500 bg-orange-50' : 'border-gray-300'
+                    }`}>
+                      1
+                    </div>
+                    <span className="ml-2 font-medium">Adres Bilgileri</span>
+                  </div>
+                  <div className={`w-16 h-0.5 ${serviceModalStep >= 1 ? 'bg-orange-500' : 'bg-gray-300'}`} />
+                  <div className={`flex items-center ${serviceModalStep >= 1 ? 'text-orange-500' : 'text-gray-400'}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
+                      serviceModalStep >= 1 ? 'border-orange-500 bg-orange-50' : 'border-gray-300'
+                    }`}>
+                      2
+                    </div>
+                    <span className="ml-2 font-medium">Taşıma Detayları</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Header */}
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-3xl font-bold text-gray-800">
+                  {serviceModalStep === 0 ? 'Rotanızı Belirleyin' : 'Taşıma Detayları'}
+                </h2>
+                <button
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  onClick={() => {
+                    setShowMapModal(false);
+                    setServiceModalStep(0);
+                    setSelectedService(null);
+                  }}
+                >
+                  <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Step Content */}
+              {serviceModalStep === 0 ? (
+                // Step 1: Adres Bilgileri
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Mevcut adres ve harita içeriği */}
+                  <div className="md:col-span-1 space-y-4">
+                    {/* Alınacak Adres */}
+                    <div>
+                      <label className="block text-gray-700 mb-2">Alınacak Adres</label>
+                      <div className="relative z-50">
+                        {isLoaded && (
+                          <Autocomplete
+                            onLoad={onPickupLoad}
+                            onPlaceChanged={onPickupPlaceChanged}
+                            options={{
+                              componentRestrictions: { country: "tr" },
+                              types: ["establishment", "geocode"],
+                              fields: ["formatted_address", "geometry", "name", "place_id"]
+                            }}
+                          >
+                            <input 
+                              type="text" 
+                              value={pickupAddress}
+                              onChange={handlePickupInputChange}
+                              onFocus={handlePickupFocus}
+                              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                              placeholder="Alınacak adresi girin"
+                            />
+                          </Autocomplete>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Teslim Edilecek Adres */}
+                    <div>
+                      <label className="block text-gray-700 mb-2">Teslim Edilecek Adres</label>
+                      <div className="relative z-40">
+                        {isLoaded && (
+                          <Autocomplete
+                            onLoad={onDeliveryLoad}
+                            onPlaceChanged={onDeliveryPlaceChanged}
+                            options={{
+                              componentRestrictions: { country: "tr" },
+                              types: ["establishment", "geocode"],
+                              fields: ["formatted_address", "geometry", "name", "place_id"]
+                            }}
+                          >
+                            <input 
+                              type="text" 
+                              value={deliveryAddress}
+                              onChange={handleDeliveryInputChange}
+                              onFocus={handleDeliveryFocus}
+                              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                              placeholder="Teslim edilecek adresi girin"
+                            />
+                          </Autocomplete>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Rota Bilgisi */}
+                    <div className="bg-orange-50 p-4 rounded-lg">
+                      <h3 className="font-bold text-lg mb-2">Rota Bilgisi</h3>
+                      <div>
+                        {(!pickupPlace || !deliveryPlace) ? (
+                          <p className="text-gray-500 text-sm mb-3">Önce adres seçimi yapınız.</p>
+                        ) : (
+                          <div className="flex space-x-6">
+                            <div>
+                              <span className="text-gray-600 block">Mesafe</span>
+                              <span className="font-bold">{distance || '---'}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600 block">Süre</span>
+                              <span className="font-bold">{duration || '---'}</span>
+                            </div>
+                          </div>
+                        )}
+                        <button
+                          className={`w-full mt-3 px-4 py-2 rounded-lg transition ${
+                            (!pickupPlace || !deliveryPlace) 
+                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              : 'bg-orange-500 text-white hover:bg-orange-600'
+                          }`}
+                          onClick={() => {
+                            if (pickupPlace && deliveryPlace) {
+                              setServiceModalStep(1);
+                            }
+                          }}
+                          disabled={!pickupPlace || !deliveryPlace}
+                        >
+                          Devam Et
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Harita */}
+                  <div className="md:col-span-2 h-[400px] bg-gray-100 rounded-lg">
+                    {isLoaded ? (
+                      <GoogleMap
+                        mapContainerStyle={containerStyle}
+                        center={center}
+                        zoom={12}
+                        onLoad={onLoad}
+                        onUnmount={onUnmount}
+                      >
+                        {/* Mevcut harita içeriği */}
+                        {directions && <DirectionsRenderer {...directions} />}
+                        {pickupMarker && (
+                          <Marker 
+                            position={pickupMarker}
+                            icon={{
+                              path: window.google.maps.SymbolPath.CIRCLE,
+                              scale: 10,
+                              fillColor: '#22c55e',
+                              fillOpacity: 1,
+                              strokeColor: '#ffffff',
+                              strokeWeight: 2,
+                            }}
+                          />
+                        )}
+                        {deliveryMarker && (
+                          <Marker 
+                            position={deliveryMarker}
+                            icon={{
+                              path: window.google.maps.SymbolPath.CIRCLE,
+                              scale: 10,
+                              fillColor: '#ef4444',
+                              fillOpacity: 1,
+                              strokeColor: '#ffffff',
+                              strokeWeight: 2,
+                            }}
+                          />
+                        )}
+                      </GoogleMap>
+                    ) : (
+                      <div className="h-full flex items-center justify-center">
+                        <FaSpinner className="animate-spin text-orange-500 text-3xl" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                // Step 2: Taşıma Detayları
+                <div className="space-y-6">
+                  <div className="bg-orange-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-lg text-orange-700">Seçilen Hizmet: {selectedService}</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Ürün Açıklaması */}
+                    <div>
+                      <label className="block text-gray-700 mb-2">Ürün Açıklaması</label>
+                      <textarea
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 h-32"
+                        placeholder="Taşınacak ürünler hakkında detaylı bilgi verin"
+                      />
+                    </div>
+
+                    {/* Ek Bilgiler */}
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-gray-700 mb-2">Tahmini Ağırlık (kg)</label>
+                        <input
+                          type="number"
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          placeholder="Örn: 1000"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-gray-700 mb-2">Paket/Koli Sayısı</label>
+                        <input
+                          type="number"
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          placeholder="Örn: 5"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Ek Hizmetler */}
+                  <div>
+                    <h3 className="font-semibold text-lg mb-3">Ek Hizmetler</h3>
+                    <div className="space-y-3">
+                      <label className="flex items-center space-x-3">
+                        <input type="checkbox" className="form-checkbox text-orange-500 rounded" />
+                        <span>Yükleme Yardımı</span>
+                      </label>
+                      <label className="flex items-center space-x-3">
+                        <input type="checkbox" className="form-checkbox text-orange-500 rounded" />
+                        <span>İndirme Yardımı</span>
+                      </label>
+                      <label className="flex items-center space-x-3">
+                        <input type="checkbox" className="form-checkbox text-orange-500 rounded" />
+                        <span>Nakliyat Sigortası</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Notlar */}
+                  <div>
+                    <label className="block text-gray-700 mb-2">Ek Notlar</label>
+                    <textarea
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 h-24"
+                      placeholder="Taşıyıcının bilmesi gereken ek bilgiler"
+                    />
+                  </div>
+
+                  {/* Butonlar */}
+                  <div className="flex space-x-4">
+                    <button
+                      className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                      onClick={() => setServiceModalStep(0)}
+                    >
+                      Geri
+                    </button>
+                    <button
+                      className="flex-1 px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+                      onClick={() => {
+                        setShowMapModal(false);
+                        setCurrentStep(2);
+                        setShowPhoneModal(true);
+                      }}
+                    >
+                      Devam Et
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1996,6 +2436,14 @@ export default function MusteriSayfasi() {
         @keyframes shimmer {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(100%); }
+        }
+
+        @keyframes float {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          50% { transform: translateY(-10px) rotate(1deg); }
+        }
+        .animate-float {
+          animation: float 4s ease-in-out infinite;
         }
       `}</style>
     </main>
