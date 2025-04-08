@@ -3,8 +3,8 @@
   "buildCommand": "next build",
   "rewrites": [
     {
-      "source": "/",
-      "destination": "/musteri"
+      "source": "/musteri",
+      "destination": "/"
     }
   ],
   "headers": [
