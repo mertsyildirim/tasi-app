@@ -11,14 +11,25 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  async redirects() {
+  async rewrites() {
     return [
       {
         source: '/musteri',
-        destination: '/',
-        permanent: true,
+        destination: '/'
       },
-    ]
+      {
+        source: '/',
+        destination: '/portal/login',
+      },
+      {
+        source: '/portal',
+        destination: '/portal/login',
+      },
+      {
+        source: '/dashboard',
+        destination: '/portal/dashboard',
+      },
+    ];
   },
   async headers() {
     return [
