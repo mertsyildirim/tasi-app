@@ -15,20 +15,44 @@ const nextConfig = {
     return [
       {
         source: '/musteri',
-        destination: '/'
+        destination: '/',
+        has: [
+          {
+            type: 'host',
+            value: 'tasiapp.com'
+          }
+        ]
       },
       {
         source: '/',
         destination: '/portal/login',
+        has: [
+          {
+            type: 'host',
+            value: 'portal.tasiapp.com'
+          }
+        ]
       },
       {
         source: '/portal',
         destination: '/portal/login',
+        has: [
+          {
+            type: 'host',
+            value: 'portal.tasiapp.com'
+          }
+        ]
       },
       {
         source: '/dashboard',
         destination: '/portal/dashboard',
-      },
+        has: [
+          {
+            type: 'host',
+            value: 'portal.tasiapp.com'
+          }
+        ]
+      }
     ];
   },
   async headers() {
