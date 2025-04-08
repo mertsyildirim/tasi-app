@@ -14,6 +14,10 @@ const nextConfig = {
   async rewrites() {
     return [
       {
+        source: '/',
+        destination: '/portal/login',
+      },
+      {
         source: '/portal',
         destination: '/portal/login',
       },

@@ -3,12 +3,8 @@
   "buildCommand": "next build",
   "rewrites": [
     {
-      "source": "/portal",
-      "destination": "/portal/login"
-    },
-    {
-      "source": "/dashboard",
-      "destination": "/portal/dashboard"
+      "source": "/",
+      "destination": "/musteri"
     }
   ],
   "headers": [
