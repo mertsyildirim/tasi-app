@@ -1,61 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import Link from 'next/link';
-import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaTruck } from 'react-icons/fa';
+import React, { useState } from 'react';
 import Head from 'next/head';
+import { FaTruck } from 'react-icons/fa';
 
 export default function Login() {
-  const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
-  // Login işleminden sonra sayfa yenilemesi gerekirse
-  useEffect(() => {
-    // Sonsuz döngüyü önlemek için bu kontrol kısmını kaldırıyoruz
-    // Kullanıcı login sayfasında kalsın, sadece butonla giriş yapsın
-  }, []);
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const handleLogin = () => {
     setLoading(true);
-    setError('');
-
+    
     try {
-      console.log("Giriş yapılıyor...");
-      
-      // Demo kullanıcı objesi
+      // Taşıyıcı demo hesabı (basit obje)
       const user = {
         id: 1,
         name: 'Demo Kullanıcı',
-        email: 'demo@tasiapp.com',
-        role: 'portal_user'
+        email: 'demo@tasiapp.com'
       };
-
-      // Tarayıcı önbelleğini temizleme
+      
+      // Önce localStorage'ı temizle
       localStorage.clear();
       
-      // Her iki anahtara da kullanıcı bilgilerini kaydet
+      // Kullanıcı verilerini kaydet
       localStorage.setItem('user', JSON.stringify(user));
       localStorage.setItem('portal_user', JSON.stringify(user));
       
-      // Debug log ekleyelim
-      console.log("Kullanıcı bilgileri kaydedildi:", {
-        user: localStorage.getItem('user'),
-        portal_user: localStorage.getItem('portal_user')
-      });
+      // Doğrudan sabit URL'ye yönlendir
+      window.location.href = "https://portal.tasiapp.com/portal/dashboard";
       
-      console.log("Dashboard'a yönlendiriliyor...");
-      
-      // Tam URL kullanarak yönlendirme yapalım
-      const domain = window.location.origin; // Örn: https://portal.tasiapp.com
-      window.location.href = `${domain}/portal/dashboard`;
-      
-    } catch (err) {
-      console.error("Giriş hatası:", err);
-      setError("Giriş yaparken bir hata oluştu. Lütfen tekrar deneyin.");
+    } catch (error) {
+      console.error("Login hatası:", error);
       setLoading(false);
     }
   };
@@ -85,23 +57,9 @@ export default function Login() {
 
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
           <div className="bg-white py-8 px-4 shadow-xl sm:rounded-lg sm:px-10 border border-gray-100">
-            {error && (
-              <div className="mb-4 bg-red-50 border-l-4 border-red-400 p-4 rounded-md">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-red-700">{error}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
             <button
               onClick={handleLogin}
+              disabled={loading}
               className="w-full flex justify-center py-3 px-4 bg-blue-600 text-white rounded-md shadow-sm text-lg font-medium hover:bg-blue-700 focus:outline-none"
             >
               {loading ? "Giriş yapılıyor..." : "Demo Hesap ile Giriş Yap"}
