@@ -14,15 +14,9 @@ export default function Login() {
 
   // Login işleminden sonra sayfa yenilemesi gerekirse
   useEffect(() => {
-    // localStorage'dan kullanıcı kontrolü
-    const user = localStorage.getItem('user') || localStorage.getItem('portal_user');
-    
-    if (user) {
-      // Kullanıcı zaten giriş yapmış, dashboard'a yönlendir
-      console.log("Kullanıcı zaten giriş yapmış, dashboard'a yönlendiriliyor...");
-      router.push('/portal/dashboard');
-    }
-  }, [router]);
+    // Sonsuz döngüyü önlemek için bu kontrol kısmını kaldırıyoruz
+    // Kullanıcı login sayfasında kalsın, sadece butonla giriş yapsın
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -49,8 +43,8 @@ export default function Login() {
       
       console.log("Kullanıcı bilgileri kaydedildi. Dashboard'a yönlendiriliyor...");
       
-      // Next.js router ile yönlendirme
-      router.push('/portal/dashboard');
+      // Next.js router yerine doğrudan tarayıcı yönlendirmesi kullan
+      window.location.href = "/portal/dashboard";
       
     } catch (err) {
       console.error("Giriş hatası:", err);
