@@ -11,9 +11,6 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   async rewrites() {
     return [
       {
@@ -37,24 +34,13 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: `
-              default-src 'self' https://*.googleapis.com https://*.gstatic.com;
-              script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googleapis.com https://*.gstatic.com;
-              style-src 'self' 'unsafe-inline' https://*.googleapis.com;
-              img-src 'self' data: blob: https://*.google.com https://*.googleapis.com https://*.gstatic.com;
-              font-src 'self' data: https://*.gstatic.com;
-              frame-src 'self' https://*.google.com;
-              connect-src 'self' https://*.googleapis.com https://*.google.com;
-              worker-src 'self' blob:;
-            `
+            value: `frame-ancestors 'self';
+                   script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com;
+                   img-src 'self' data: https://*.google.com https://*.googleapis.com https://*.gstatic.com;`
           }
         ],
       },
     ]
-  },
-  // Google Maps için client-side rendering
-  experimental: {
-    runtime: 'edge',
   }
 };
 

@@ -2,23 +2,9 @@
 
 import React, { useState, useEffect } from 'react'
 import { FaTruck, FaBoxOpen, FaMapMarkedAlt, FaShieldAlt, FaClock, FaHandshake, FaLocationArrow, FaBuilding, FaHome, FaWarehouse, FaSpinner, FaPallet, FaBox, FaImage, FaTrash, FaMapMarkerAlt, FaCheck, FaStar, FaPhone, FaInfoCircle, FaCheckCircle, FaEnvelope, FaMapPin, FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from 'react-icons/fa'
-import dynamic from 'next/dynamic'
+import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer } from '@react-google-maps/api'
 import Script from 'next/script'
 import Link from 'next/link'
-
-// Google Maps bileşenlerini dynamic import ile yükle
-const GoogleMap = dynamic(() => import('@react-google-maps/api').then(mod => mod.GoogleMap), {
-  ssr: false,
-  loading: () => <div>Loading Map...</div>
-})
-
-const Marker = dynamic(() => import('@react-google-maps/api').then(mod => mod.Marker), {
-  ssr: false
-})
-
-const DirectionsRenderer = dynamic(() => import('@react-google-maps/api').then(mod => mod.DirectionsRenderer), {
-  ssr: false
-})
 
 // API anahtarını doğrudan tanımlayalım
 const GOOGLE_MAPS_API_KEY = "AIzaSyAKht3SqaVJpufUdq-vVQEfBEQKejT9Z8k";
@@ -26,8 +12,6 @@ const GOOGLE_MAPS_API_KEY = "AIzaSyAKht3SqaVJpufUdq-vVQEfBEQKejT9Z8k";
 export default function MusteriSayfasi() {
   const [pickupAddress, setPickupAddress] = useState('')
   const [deliveryAddress, setDeliveryAddress] = useState('')
-  const [pickupLocation, setPickupLocation] = useState(null)
-  const [deliveryLocation, setDeliveryLocation] = useState(null)
   const [showModal, setShowModal] = useState(false)
   const [selectedTransportType, setSelectedTransportType] = useState('')
   const [showSummaryModal, setShowSummaryModal] = useState(false)
@@ -43,115 +27,12 @@ export default function MusteriSayfasi() {
   const [map, setMap] = useState(null)
   const [isMobile, setIsMobile] = useState(false)
   const [mapError, setMapError] = useState(null)
-  const [isMapLoaded, setIsMapLoaded] = useState(false)
 
-  useEffect(() => {
-    // Google Maps API'yi yükle
-    const loadGoogleMapsAPI = async () => {
-      try {
-        const google = await window.google
-        if (!google) {
-          const script = document.createElement('script')
-          script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`
-          script.async = true
-          script.defer = true
-          document.head.appendChild(script)
-          script.onload = () => {
-            setIsMapLoaded(true)
-            initializeAutocomplete()
-          }
-        } else {
-          setIsMapLoaded(true)
-          initializeAutocomplete()
-        }
-      } catch (error) {
-        console.error('Google Maps API yükleme hatası:', error)
-        setMapError(error.message)
-      }
-    }
-
-    loadGoogleMapsAPI()
-  }, [])
-
-  const initializeAutocomplete = () => {
-    if (!window.google) return
-
-    // Alım adresi için autocomplete
-    const pickupInput = document.getElementById('pickup-input')
-    if (pickupInput) {
-      const pickupAutocomplete = new window.google.maps.places.Autocomplete(pickupInput, {
-        componentRestrictions: { country: 'tr' },
-        fields: ['formatted_address', 'geometry']
-      })
-
-      pickupAutocomplete.addListener('place_changed', () => {
-        const place = pickupAutocomplete.getPlace()
-        if (!place.geometry) return
-
-        setPickupAddress(place.formatted_address)
-        setPickupLocation({
-          lat: place.geometry.location.lat(),
-          lng: place.geometry.location.lng()
-        })
-
-        if (deliveryLocation) {
-          drawRoute(
-            { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() },
-            deliveryLocation
-          )
-        }
-      })
-    }
-
-    // Teslimat adresi için autocomplete
-    const deliveryInput = document.getElementById('delivery-input')
-    if (deliveryInput) {
-      const deliveryAutocomplete = new window.google.maps.places.Autocomplete(deliveryInput, {
-        componentRestrictions: { country: 'tr' },
-        fields: ['formatted_address', 'geometry']
-      })
-
-      deliveryAutocomplete.addListener('place_changed', () => {
-        const place = deliveryAutocomplete.getPlace()
-        if (!place.geometry) return
-
-        setDeliveryAddress(place.formatted_address)
-        setDeliveryLocation({
-          lat: place.geometry.location.lat(),
-          lng: place.geometry.location.lng()
-        })
-
-        if (pickupLocation) {
-          drawRoute(
-            pickupLocation,
-            { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() }
-          )
-        }
-      })
-    }
-  }
-
-  const drawRoute = (origin, destination) => {
-    if (!isMapLoaded || !map) return
-
-    const directionsService = new window.google.maps.DirectionsService()
-
-    directionsService.route(
-      {
-        origin: origin,
-        destination: destination,
-        travelMode: window.google.maps.TravelMode.DRIVING
-      },
-      (result, status) => {
-        if (status === window.google.maps.DirectionsStatus.OK) {
-          setDirections(result)
-        } else {
-          console.error(`Rota bulunamadı: ${status}`)
-          setMapError(`Rota bulunamadı: ${status}`)
-        }
-      }
-    )
-  }
+  // Google Maps yükleme işlemi
+  const { isLoaded, loadError } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY
+  })
 
   useEffect(() => {
     if (loadError) {
@@ -187,6 +68,33 @@ export default function MusteriSayfasi() {
   const onUnmount = React.useCallback(function callback(map) {
     setMap(null)
   }, [])
+
+  useEffect(() => {
+    if (isLoaded && map) {
+      try {
+        const directionsService = new window.google.maps.DirectionsService()
+
+        directionsService.route(
+          {
+            origin: pickupLatLng,
+            destination: deliveryLatLng,
+            travelMode: window.google.maps.TravelMode.DRIVING
+          },
+          (result, status) => {
+            if (status === window.google.maps.DirectionsStatus.OK) {
+              setDirections(result)
+            } else {
+              console.error(`Directions request failed: ${status}`)
+              setMapError(`Rota bulunamadı: ${status}`);
+            }
+          }
+        )
+      } catch (error) {
+        console.error("Google Maps API Error:", error)
+        setMapError(error.message);
+      }
+    }
+  }, [isLoaded, map])
 
   useEffect(() => {
     const checkIsMobile = () => {
@@ -305,16 +213,15 @@ export default function MusteriSayfasi() {
         <div className="container mx-auto px-4 py-12 -mt-16 bg-white rounded-t-3xl shadow-lg">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className={`${isMobile ? "order-2" : ""} md:col-span-1 space-y-4`}>
-              <h2 className="text-2xl font-bold mb-6">Rotanızı Belirleyin & Rezervasyon Yaptırın</h2>
+              <h2 className="text-2xl font-bold mb-6">Rotanızı Belirleyin</h2>
               
               <div>
                 <label className="block text-gray-700 mb-2">Alım Adresi</label>
                 <div className="relative">
                   <input 
-                    id="pickup-input"
                     type="text" 
                     value={pickupAddress}
-                    onChange={(e) => setPickupAddress(e.target.value)}
+                    onChange={handlePickupInputChange}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                     placeholder="Alım adresini girin"
                   />
@@ -330,10 +237,9 @@ export default function MusteriSayfasi() {
                 <label className="block text-gray-700 mb-2">Teslimat Adresi</label>
                 <div className="relative">
                   <input 
-                    id="delivery-input"
                     type="text" 
                     value={deliveryAddress}
-                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                    onChange={handleDeliveryInputChange}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                     placeholder="Teslimat adresini girin"
                   />
@@ -376,10 +282,10 @@ export default function MusteriSayfasi() {
                   </div>
                 </div>
               )}
-              {!mapError && isMapLoaded ? (
+              {!mapError && isLoaded ? (
                 <GoogleMap
                   mapContainerStyle={containerStyle}
-                  center={pickupLocation || center}
+                  center={center}
                   zoom={12}
                   onLoad={onLoad}
                   onUnmount={onUnmount}
@@ -388,26 +294,12 @@ export default function MusteriSayfasi() {
                     <DirectionsRenderer directions={directions} />
                   ) : (
                     <>
-                      {pickupLocation && (
-                        <Marker 
-                          position={pickupLocation}
-                          icon={{
-                            url: "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
-                          }}
-                        />
-                      )}
-                      {deliveryLocation && (
-                        <Marker 
-                          position={deliveryLocation}
-                          icon={{
-                            url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
-                          }}
-                        />
-                      )}
+                      <Marker position={pickupLatLng} />
+                      <Marker position={deliveryLatLng} />
                     </>
                   )}
                 </GoogleMap>
-              ) : (!mapError && !isMapLoaded) ? (
+              ) : (!mapError && !isLoaded) ? (
                 <div className={`h-[250px] md:h-[400px] w-full relative bg-gray-200 flex items-center justify-center`}>
                   <div className="text-center text-gray-600">
                     <FaSpinner className="mx-auto mb-2 text-3xl text-orange-500 animate-spin" />
