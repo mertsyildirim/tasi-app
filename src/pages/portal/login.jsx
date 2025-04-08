@@ -17,40 +17,33 @@ export default function Login() {
     setLoading(true);
     setError('');
 
-    // Log için
-    console.log("Giriş bilgileri:", email, password);
+    // Basitleştirilmiş giriş işlemi
+    try {
+      console.log("Giriş yapılıyor...");
+      
+      // Basitleştirilmiş kullanıcı objesi
+      const user = {
+        id: 1,
+        name: 'Demo Kullanıcı',
+        email: 'demo@tasiapp.com',
+        role: 'portal_user'
+      };
 
-    // Basit doğrulama
-    if (email.trim() === 'demo@tasiapp.com' && password.trim() === 'demo123') {
-      console.log("Kimlik doğrulama başarılı!");
-
-      try {
-        // Demo kullanıcı bilgilerini sakla - localStorage'a kaydet
-        const user = {
-          id: 1,
-          name: 'Demo Kullanıcı',
-          email: 'demo@tasiapp.com',
-          phone: '+90 555 123 4567',
-          company: 'Taşı Lojistik A.Ş.',
-          taxNumber: '1234567890',
-          taxOffice: 'İstanbul',
-          address: 'Atatürk Mah. İstiklal Cad. No: 34, İstanbul, Türkiye',
-          role: 'portal_user'
-        };
-        
-        localStorage.setItem('portal_user', JSON.stringify(user));
-        console.log("Kullanıcı bilgileri kaydedildi");
-        
-        // Doğrudan dashboard'a git - basit çözüm
-        console.log("Doğrudan dashboard'a yönlendiriliyor...");
+      // Tarayıcı önbelleğini temizleme işlemi
+      localStorage.clear();
+      
+      // Kullanıcı bilgilerini kaydet
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('portal_user', JSON.stringify(user));
+      console.log("Kullanıcı bilgileri kaydedildi. Yönlendiriliyor...");
+      
+      // Gecikmeli yönlendirme - tarayıcının localStorage'ı işlemesi için
+      setTimeout(() => {
         window.location.href = "/portal/dashboard";
-      } catch (err) {
-        console.error("Yönlendirme hatası:", err);
-        setError("Yönlendirme hatası oluştu. Tekrar deneyin.");
-      }
-    } else {
-      console.log("Kimlik doğrulama başarısız!");
-      setError('Geçersiz e-posta veya şifre. Lütfen demo@tasiapp.com / demo123 kullanın.');
+      }, 500);
+    } catch (err) {
+      console.error("Giriş hatası:", err);
+      setError("Giriş yaparken bir hata oluştu. Lütfen tekrar deneyin.");
       setLoading(false);
     }
   };
@@ -80,125 +73,31 @@ export default function Login() {
 
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
           <div className="bg-white py-8 px-4 shadow-xl sm:rounded-lg sm:px-10 border border-gray-100">
-            <form className="space-y-6" onSubmit={handleLogin}>
-              {error && (
-                <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-md">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-sm text-red-700">{error}</p>
-                    </div>
+            {error && (
+              <div className="mb-4 bg-red-50 border-l-4 border-red-400 p-4 rounded-md">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
                   </div>
-                </div>
-              )}
-
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  E-posta
-                </label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FaEnvelope className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
-                    placeholder="ornek@tasiapp.com"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Şifre
-                </label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FaLock className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 pr-10 sm:text-sm border-gray-300 rounded-md"
-                    placeholder="••••••••"
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="text-gray-400 hover:text-gray-500 focus:outline-none"
-                    >
-                      {showPassword ? (
-                        <FaEyeSlash className="h-5 w-5" />
-                      ) : (
-                        <FaEye className="h-5 w-5" />
-                      )}
-                    </button>
+                  <div className="ml-3">
+                    <p className="text-sm text-red-700">{error}</p>
                   </div>
                 </div>
               </div>
+            )}
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <input
-                    id="remember-me"
-                    name="remember-me"
-                    type="checkbox"
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-                    Beni hatırla
-                  </label>
-                </div>
+            <button
+              onClick={handleLogin}
+              className="w-full flex justify-center py-3 px-4 bg-blue-600 text-white rounded-md shadow-sm text-lg font-medium hover:bg-blue-700 focus:outline-none"
+            >
+              {loading ? "Giriş yapılıyor..." : "Demo Hesap ile Giriş Yap"}
+            </button>
 
-                <div className="text-sm">
-                  <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
-                    Şifremi unuttum
-                  </a>
-                </div>
-              </div>
-
-              <div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                    loading ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                >
-                  {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
-                </button>
-              </div>
-            </form>
-
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Demo Hesap</span>
-                </div>
-              </div>
-              <div className="mt-6 text-center text-sm text-gray-600">
-                <p>E-posta: demo@tasiapp.com</p>
-                <p>Şifre: demo123</p>
-              </div>
+            <div className="mt-6 text-center text-sm text-gray-600">
+              <p>Bu demo hesap, tüm kullanıcıları doğrudan giriş yapmalarını sağlar.</p>
+              <p>Gerçek bir kullanıcı doğrulaması yoktur.</p>
             </div>
           </div>
         </div>

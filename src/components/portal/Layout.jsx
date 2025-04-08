@@ -29,11 +29,22 @@ export default function PortalLayout({ children, title = 'Taşıyıcı Portalı'
   useEffect(() => {
     const checkAuth = () => {
       try {
-        const userData = localStorage.getItem('portal_user');
+        // Önce 'portal_user' anahtarını kontrol et
+        let userData = localStorage.getItem('portal_user');
+        
+        // Eğer 'portal_user' yoksa, 'user' anahtarını kontrol et
         if (!userData) {
+          userData = localStorage.getItem('user');
+        }
+        
+        // Hala kullanıcı verisi yoksa, login sayfasına yönlendir
+        if (!userData) {
+          console.error('Kullanıcı verileri bulunamadı!');
           router.push('/portal/login');
           return;
         }
+        
+        // Kullanıcı verisini ayarla
         setUser(JSON.parse(userData));
         
         // Taşıyıcı durumunu kontrol et (örnek olarak)
@@ -65,7 +76,9 @@ export default function PortalLayout({ children, title = 'Taşıyıcı Portalı'
   }, [router]);
 
   const handleLogout = () => {
+    // Her iki anahtarı da temizle
     localStorage.removeItem('portal_user');
+    localStorage.removeItem('user');
     router.push('/portal/login');
   };
 
