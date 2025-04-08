@@ -45,19 +45,26 @@ export default function Login() {
     const hostname = window.location.hostname;
     const pathname = window.location.pathname;
 
+    console.log("Debug - Login Page:", { hostname, pathname });
+
     if (hostname === 'tasiapp.com' || hostname === 'www.tasiapp.com') {
       if (pathname.includes('/admin')) {
         setLoginType('admin');
       } else {
         setLoginType('main');
       }
-    } else if (hostname === 'portal.tasiapp.com' || hostname.includes('localhost')) {
+    } else if (hostname === 'portal.tasiapp.com' || hostname.includes('localhost') || hostname.includes('vercel.app')) {
       setLoginType('portal');
+    }
+
+    // URL'de debug parametresi varsa tüm kullanıcıları console'a yazdır
+    if (window.location.search.includes('debug')) {
+      console.log("Kullanıcı Listesi:", USERS);
     }
   }, []);
 
   const handleLogin = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setError('');
     setLoading(true);
 
@@ -82,7 +89,7 @@ export default function Login() {
         if (loginType === 'admin') {
           // Admin girişi yapılıyor
           if (user.role === 'admin') {
-            window.location.href = '/admin/dashboard';
+            router.push('/admin/dashboard');
           } else {
             setError('Yetkisiz erişim. Bu alan sadece yöneticiler içindir.');
             localStorage.removeItem('user');
@@ -91,7 +98,7 @@ export default function Login() {
           }
         } else if (loginType === 'main') {
           // Ana site girişi yapılıyor
-          window.location.href = '/';
+          router.push('/');
         } else {
           // Portal girişi yapılıyor
           switch (user.role) {
@@ -108,13 +115,18 @@ export default function Login() {
               router.push('/portal/dashboard');
           }
         }
+        
+        // Yönlendirme işlemi sonrası bir süre bekleyerek form sıfırlama
+        setTimeout(() => {
+          setLoading(false);
+        }, 1000);
       } else {
         setError('Geçersiz e-posta veya şifre');
+        setLoading(false);
       }
     } catch (err) {
       setError('Giriş yapılırken bir hata oluştu');
       console.error('Login error:', err);
-    } finally {
       setLoading(false);
     }
   };
@@ -169,7 +181,12 @@ export default function Login() {
 
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
           <div className="bg-white py-8 px-4 shadow-xl sm:rounded-lg sm:px-10 border border-gray-100">
-            <form className="space-y-6" onSubmit={handleLogin}>
+            <form 
+              className="space-y-6" 
+              onSubmit={handleLogin}
+              method="POST"
+              action="#"
+            >
               {error && (
                 <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-md">
                   <div className="flex">
@@ -266,6 +283,7 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={loading}
+                  onClick={handleLogin}
                   className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
                     loading ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
@@ -281,7 +299,7 @@ export default function Login() {
                   <div className="w-full border-t border-gray-300" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Demo Hesap</span>
+                  <span className="px-2 bg-white text-gray-500">Demo Hesaplar</span>
                 </div>
               </div>
               <div className="mt-6 text-center text-sm text-gray-600">
@@ -292,10 +310,25 @@ export default function Login() {
                   </>
                 ) : (
                   <>
-                    <p>E-posta: demo@tasiapp.com</p>
-                    <p>Şifre: demo123</p>
+                    <p>Taşıyıcı: demo@tasiapp.com / demo123</p>
+                    <p>Sürücü: driver@tasiapp.com / Driver123!</p>
+                    <p>Admin: admin@tasiapp.com / Admin123!</p>
                   </>
                 )}
+              </div>
+              <div className="mt-3 text-center">
+                <button 
+                  type="button"
+                  onClick={() => {
+                    // Demo kullanıcı olarak otomatik giriş yap
+                    setEmail('demo@tasiapp.com');
+                    setPassword('demo123');
+                    setTimeout(() => handleLogin(), 500);
+                  }}
+                  className="px-4 py-2 text-xs text-blue-600 hover:text-blue-800 focus:outline-none"
+                >
+                  Demo Olarak Giriş Yap
+                </button>
               </div>
             </div>
           </div>
