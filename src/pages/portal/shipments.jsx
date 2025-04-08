@@ -95,6 +95,19 @@ export default function Shipments() {
     }
   };
 
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'Tamamlandı':
+        return 'Teslim Edildi';
+      case 'Yolda':
+        return 'Taşınıyor';
+      case 'Beklemede':
+        return 'Beklemede';
+      default:
+        return status;
+    }
+  };
+
   return (
     <PortalLayout sidebar="Taşımalar">
       <div className="p-4 sm:p-6 w-full">
