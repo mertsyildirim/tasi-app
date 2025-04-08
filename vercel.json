@@ -1,4 +1,35 @@
 {
   "framework": "nextjs",
-  "buildCommand": "next build"
+  "buildCommand": "next build",
+  "rewrites": [
+    {
+      "source": "/musteri",
+      "destination": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "tasiapp.com"
+        }
+      ]
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ]
 } 
