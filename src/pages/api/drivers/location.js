@@ -8,6 +8,8 @@ export default async function handler(req, res) {
     const startTime = new Date();
     console.log(`--- Konum API isteği başladı: ${startTime.toISOString()} ---`);
     console.log(`IP: ${req.headers['x-forwarded-for'] || req.socket.remoteAddress}, Metot: ${req.method}, URL: ${req.url}`);
+    console.log('Request Headers:', JSON.stringify(req.headers));
+    console.log('Request Body:', JSON.stringify(req.body));
     
     // CORS başlıklarını ekle - Tüm kaynaklardan gelen isteklere izin ver
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -34,6 +36,8 @@ export default async function handler(req, res) {
         // Gerekli indeksleri kontrol et ve oluştur
         try {
           const indexes = await dbConnection.db.collection('driver_locations').listIndexes().toArray();
+          console.log('Mevcut indeksler:', JSON.stringify(indexes));
+          
           const hasLocationIndex = indexes.some(index => index.name === 'location_2dsphere');
           
           if (!hasLocationIndex) {
@@ -75,11 +79,15 @@ export default async function handler(req, res) {
       return res.status(200).json({ 
         success: false,
         error: 'Veritabanı bağlantısı kurulamadı, lütfen daha sonra tekrar deneyin',
-        code: 'DB_CONNECTION_ERROR' 
+        code: 'DB_CONNECTION_ERROR',
+        details: dbCheckError.message
       });
     }
     
+    // Auth middleware'i çağır
+    console.log('3. Auth middleware başlatılıyor...');
     await authMiddleware(req, res, async () => {
+      console.log('4. Auth middleware başarılı, kullanıcı:', JSON.stringify(req.user));
       const { method } = req;
 
       switch (method) {
@@ -99,6 +107,7 @@ export default async function handler(req, res) {
     console.log(`--- Konum API isteği tamamlandı: ${endTime.toISOString()}, Süre: ${processingTime}ms ---`);
   } catch (error) {
     console.error('Sürücü konum API ana hata:', error);
+    console.error('Hata stack:', error.stack);
     
     // Client hatayı her durumda doğru bir şekilde işleyebilsin diye HTTP 200 dönüyoruz
     try {
@@ -107,7 +116,8 @@ export default async function handler(req, res) {
         error: 'Sunucu hatası, ancak konum izleme devam ediyor', 
         code: 'SERVER_ERROR',
         message: error.message,
-        name: error.name || 'UnknownError'
+        name: error.name || 'UnknownError',
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       });
     } catch (finalError) {
       // Son çare, düz HTTP yanıtı
@@ -513,134 +523,54 @@ async function updateDriverLocation(req, res) {
         throw new Error(`Geçersiz konum değerleri: lat=${latitude}, lng=${longitude}`);
       }
       
-      // En basit veri yapısıyla kaydet - GeoJSON formatını kullanma
-      const extremelySimpleLocation = {
-        driverUserId: userId, // String olarak kullanıcı ID'si 
-        driverIdStr: driver._id.toString(), // String olarak sürücü ID'si
+      // En basit veri yapısıyla kaydet
+      const locationData = {
+        driverId: driver._id,
+        driverUserId: userId,
         driverName: driver.name || 'Bilinmeyen Sürücü',
         latitude: parsedLatitude,
         longitude: parsedLongitude,
         accuracy: parsedAccuracy,
-        timestamp: new Date(),
+        timestamp: timestamp ? new Date(timestamp) : new Date(),
         createdAt: new Date(),
         platform: platform || 'unknown',
-        isEmergencyFormat: true // Bu acil durum formatı
+        taskId: taskId || null,
+        address: address || null,
+        speed: speed || null,
+        heading: heading || null
       };
+
+      console.log('Kaydedilecek konum verisi:', locationData);
       
-      console.log("Basitleştirilmiş konum verisiyle deneniyor:", JSON.stringify(extremelySimpleLocation));
+      // Konum verisini kaydet
+      result = await db.collection('driver_locations').insertOne(locationData);
+      console.log('Konum kaydı başarıyla eklendi, ID:', result.insertedId);
       
-      // Basit dökümanla kayıt
-      try {
-        result = await db.collection('driver_locations').insertOne(extremelySimpleLocation);
-        console.log("Basit veri yapısıyla kaydedildi, ID:", result.insertedId);
-      }
-      catch (simpleInsertError) {
-        console.error("Basit veri formatıyla bile kaydedilemedi:", simpleInsertError);
-        throw simpleInsertError; // Tekrar fırlat
-      }
-    } catch (insertError) {
-      console.error('Konum kaydı eklenirken hata:', insertError);
-      
-      // Veritabanı işlemleri hakkında daha fazla bilgi topla
-      try {
-        // Koleksiyon listesini alarak veritabanı erişimini test et
-        const collections = await db.listCollections().toArray();
-        console.log("Mevcut koleksiyonlar:", collections.map(c => c.name).join(", "));
-        
-        // Driver collection'ı var mı?
-        const driversCollection = collections.find(c => c.name === 'driver_locations');
-        if (!driversCollection) {
-          // Koleksiyon yoksa oluştur
-          console.log("driver_locations koleksiyonu bulunamadı, oluşturuluyor...");
-          await db.createCollection('driver_locations');
-          console.log("Koleksiyon oluşturuldu");
+      // Başarılı yanıt döndür
+      return res.status(200).json({
+        success: true,
+        message: 'Konum başarıyla güncellendi',
+        data: {
+          id: result.insertedId,
+          location: {
+            latitude: parsedLatitude,
+            longitude: parsedLongitude,
+            address: address || null
+          },
+          accuracy: parsedAccuracy,
+          timestamp: locationData.timestamp
         }
-        
-        // Yazma yetkisi kontrolü
-        try {
-          const writeTestResult = await db.collection('system_tests').insertOne({
-            test: 'write_permission_check',
-            timestamp: new Date()
-          });
-          console.log("Yazma testi başarılı:", writeTestResult.insertedId);
-        } catch (writeTestError) {
-          console.error("Yazma testi başarısız:", writeTestError);
-        }
-      } catch(dbTestError) {
-        console.error("Veritabanı test hatası:", dbTestError);
-      }
+      });
       
-      // Hata durumunda istemciyi fazla bekletme, hata kodu dönelim
-      // Ancak 500 yerine 200 dönelim ve hata durumunu error flag'i ile belirtelim
-      // Böylece istemci tarafında HTTP hatası değil de normal bir yanıt olarak işlenecek
-      return res.status(200).json({ 
+    } catch (saveError) {
+      console.error('Konum kaydetme hatası:', saveError);
+      // Hata durumunda bile 200 dön, böylece client çalışmaya devam edebilir
+      return res.status(200).json({
         success: false,
         error: 'Konum kaydedilemedi, ancak izleme devam ediyor',
-        errorType: 'db_error',
-        details: {
-          message: insertError.message,
-          code: insertError.code,
-          name: insertError.name
-        }
+        details: saveError.message
       });
     }
-
-    if (!result || !result.insertedId) {
-      console.error("Konum kaydı eklenemedi:", result);
-      // Hata yerine başarı mesajı dönelim ama flag'i false yapalım
-      return res.status(200).json({ 
-        success: false, 
-        error: 'Konum kaydedilemedi, ancak izleme devam ediyor',
-        location: {
-          latitude: parseFloat(latitude),
-          longitude: parseFloat(longitude)
-        }
-      });
-    }
-
-    console.log("Konum kaydı eklendi, ID:", result.insertedId);
-
-    // Başarılı yanıt döndür ve doğruluk önerileri ekle
-    const response = {
-      success: true,
-      message: 'Konum başarıyla güncellendi',
-      data: {
-        id: result.insertedId,
-        location: {
-          latitude: parseFloat(latitude),
-          longitude: parseFloat(longitude),
-          address: address || undefined
-        },
-        accuracy: parsedAccuracy || null,
-        accuracyLevel: 'unknown',
-        timestamp: timestamp ? new Date(timestamp) : new Date()
-      }
-    };
-
-    // Konum doğruluğu kontrolü
-    if (!isNaN(parsedAccuracy)) {
-      // Doğruluk seviyesini belirle
-      let accuracyLevel = 'unknown';
-      if (parsedAccuracy <= 5) {
-        accuracyLevel = 'high';
-      } else if (parsedAccuracy <= 50) {
-        accuracyLevel = 'medium';
-      } else if (parsedAccuracy <= 500) {
-        accuracyLevel = 'low';
-      } else {
-        accuracyLevel = 'very_low';
-      }
-      
-      // Yanıta ekle
-      response.data.accuracyLevel = accuracyLevel;
-      
-      // Doğruluk düşükse tavsiye mesajı ekle
-      if (accuracyLevel === 'low' || accuracyLevel === 'very_low') {
-        response.recommendation = 'Konum doğruluğunuz düşük. Konum servislerini yüksek doğruluk modunda etkinleştirmeniz önerilir.';
-      }
-    }
-
-    return res.status(200).json(response);
   } catch (error) {
     console.error('Konum güncelleme hatası:', error);
     

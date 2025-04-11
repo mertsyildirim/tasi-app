@@ -68,15 +68,19 @@ export async function connectToDatabase() {
     const clientOptions = {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      maxPoolSize: 20, // Bağlantı havuzu boyutunu artır (varsayılan 10)
-      serverSelectionTimeoutMS: 15000, // 15 saniye sunucu seçim zaman aşımı
-      socketTimeoutMS: 60000, // 60 saniye soket zaman aşımı
-      connectTimeoutMS: 30000, // 30 saniye bağlantı zaman aşımı
-      heartbeatFrequencyMS: 10000, // Daha sık canlılık kontrolü
-      minPoolSize: 5, // Minimum 5 bağlantı 
-      maxIdleTimeMS: 120000, // 2 dakika atıl bağlantı süresi
-      waitQueueTimeoutMS: 15000, // Kuyrukta bekle süresi 15 saniye
-      family: 4 // IPV4 kullanımını zorla (mobil ağlarda daha kararlı)
+      maxPoolSize: 50, // Bağlantı havuzu boyutunu artır
+      serverSelectionTimeoutMS: 30000, // 30 saniye sunucu seçim zaman aşımı
+      socketTimeoutMS: 120000, // 120 saniye soket zaman aşımı
+      connectTimeoutMS: 60000, // 60 saniye bağlantı zaman aşımı
+      heartbeatFrequencyMS: 5000, // Daha sık canlılık kontrolü
+      minPoolSize: 10, // Minimum 10 bağlantı
+      maxIdleTimeMS: 300000, // 5 dakika atıl bağlantı süresi
+      waitQueueTimeoutMS: 30000, // Kuyrukta bekle süresi 30 saniye
+      family: 4, // IPV4 kullanımını zorla
+      retryWrites: true, // Yazma işlemlerini otomatik yeniden dene
+      retryReads: true, // Okuma işlemlerini otomatik yeniden dene
+      w: 'majority', // Yazma işlemlerinin çoğunluk onayı ile yapılmasını sağla
+      wtimeoutMS: 30000 // Yazma zaman aşımı 30 saniye
     };
     
     // Yeni bağlantı oluştur

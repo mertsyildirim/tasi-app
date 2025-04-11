@@ -4,12 +4,20 @@ import { connectToDatabase } from '@/lib/mongodb';
 export async function authMiddleware(req, res, next) {
   try {
     console.log(`API isteği: ${req.method} ${req.url}, Host: ${req.headers.host}`);
+    console.log('Request Headers:', JSON.stringify(req.headers));
     
     // Localhost için oturum doğrulama kontrolünü gevşet
     const host = req.headers.host || '';
     const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1') || host.startsWith('192.168.') || host.includes('.local');
     const isHttpRequest = req.headers['x-forwarded-proto'] !== 'https' && !req.connection.encrypted;
     const isDriverLocationRequest = req.url.includes('/api/drivers/location');
+    
+    console.log('Ortam bilgileri:', {
+      host,
+      isLocalhost,
+      isHttpRequest,
+      isDriverLocationRequest
+    });
     
     // Geliştirme ortamı için esneklik sağla
     if (isLocalhost) {
@@ -23,8 +31,10 @@ export async function authMiddleware(req, res, next) {
         req.user = {
           id: '000000000000000000000000', // Geçici ID
           role: 'driver',
+          name: 'Test Sürücü'
         };
         
+        console.log('Test kullanıcısı oluşturuldu:', req.user);
         return await next();
       }
     }
@@ -66,11 +76,13 @@ export async function authMiddleware(req, res, next) {
         req.user = {
           id: '000000000000000000000000',
           role: 'driver',
+          name: 'Test Sürücü'
         };
         return await next();
       }
       
-      return res.status(401).json({ 
+      return res.status(200).json({ 
+        success: false,
         error: 'Oturum belirteci bulunamadı',
         code: 'TOKEN_MISSING'
       });
@@ -96,21 +108,29 @@ export async function authMiddleware(req, res, next) {
         req.user = {
           id: '000000000000000000000000',
           role: 'driver',
+          name: 'Test Sürücü'
         };
         return await next();
       }
       
-      if (tokenError.name === 'TokenExpiredError') {
-        return res.status(401).json({ error: 'Oturum süresi dolmuş. Lütfen tekrar giriş yapın.', code: 'TOKEN_EXPIRED' });
-      } else if (tokenError.name === 'JsonWebTokenError') {
-        return res.status(401).json({ error: 'Geçersiz oturum belirteci. Lütfen tekrar giriş yapın.', code: 'INVALID_TOKEN' });
-      } else {
-        return res.status(401).json({ error: 'Oturum doğrulama hatası. Lütfen tekrar giriş yapın.', code: 'AUTH_ERROR' });
-      }
+      return res.status(200).json({
+        success: false,
+        error: 'Geçersiz oturum belirteci',
+        code: 'TOKEN_INVALID',
+        details: tokenError.message
+      });
     }
   } catch (error) {
-    console.error('Auth middleware genel hatası:', error);
-    return res.status(500).json({ error: 'Sunucu hatası', code: 'SERVER_ERROR' });
+    console.error('Auth middleware hatası:', error);
+    console.error('Hata stack:', error.stack);
+    
+    // Hata durumunda bile 200 dön, böylece client çalışmaya devam edebilir
+    return res.status(200).json({
+      success: false,
+      error: 'Kimlik doğrulama hatası',
+      code: 'AUTH_ERROR',
+      details: error.message
+    });
   }
 }
 
