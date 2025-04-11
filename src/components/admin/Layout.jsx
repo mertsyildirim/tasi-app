@@ -176,7 +176,7 @@ export default function AdminLayout({ children, title }) {
   // Çıkış yap fonksiyonu
   const handleLogout = () => {
     localStorage.removeItem('user');
-    router.push('/admin');
+    router.push('/portal/login');
   }
 
   // Tarih formatı
@@ -285,7 +285,7 @@ export default function AdminLayout({ children, title }) {
                   </>
                 )}
               </div>
-
+              
               {/* Bildirimler */}
               <div className="relative notifications-container">
                 <button 
@@ -298,7 +298,7 @@ export default function AdminLayout({ children, title }) {
                     <span className="absolute top-0 right-0 block h-3 w-3 rounded-full bg-red-500 ring-2 ring-white"></span>
                   )}
                 </button>
-
+                
                 {/* Bildirimler Dropdown */}
                 {showNotifications && (
                   <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl overflow-hidden z-20">
@@ -342,7 +342,7 @@ export default function AdminLayout({ children, title }) {
                   </div>
                 )}
               </div>
-
+              
               {/* Profil Menüsü */}
               <div className="relative profile-container">
                 <button 
@@ -358,12 +358,12 @@ export default function AdminLayout({ children, title }) {
                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         Profil
                       </Link>
-                    <Link href="/admin/settings"
+                    <Link href="/admin/settings" 
                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         Ayarlar
-                      </Link>
+                    </Link>
                     <div className="border-t border-gray-100 my-1"></div>
-                    <button
+                    <button 
                       onClick={handleLogout}
                       className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
                     >
@@ -403,8 +403,8 @@ export default function AdminLayout({ children, title }) {
                   <div key={notification.id} className="py-4">
                     <div className="flex items-center space-x-4">
                       <div className="flex-shrink-0 bg-gray-100 p-3 rounded-full">
-                        {notification.icon}
-                      </div>
+                            {notification.icon}
+                          </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-center">
                           <p className="text-sm font-medium text-gray-900">{notification.text}</p>
@@ -434,7 +434,31 @@ export default function AdminLayout({ children, title }) {
                   <p className="mt-1 text-sm text-gray-500">Henüz size gönderilmiş bir bildirim yok.</p>
                 </div>
               )}
+              </div>
+            <div className="p-4 border-t border-gray-200 flex justify-end sticky bottom-0 bg-white z-10">
+              <button 
+                onClick={() => setShowAllNotifications(false)}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded flex items-center"
+              >
+                <FaTimes className="mr-2" /> Kapat
+              </button>
             </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+} 
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <FaRegBell className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">Bildirim yok</h3>
+                  <p className="mt-1 text-sm text-gray-500">Henüz size gönderilmiş bir bildirim yok.</p>
+                </div>
+              )}
+              </div>
             <div className="p-4 border-t border-gray-200 flex justify-end sticky bottom-0 bg-white z-10">
               <button 
                 onClick={() => setShowAllNotifications(false)}

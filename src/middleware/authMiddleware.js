@@ -9,47 +9,21 @@ import { useEffect, useState } from 'react';
 export function useAuth(allowedRoles = []) {
   const router = useRouter();
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [authenticated, setAuthenticated] = useState(true);
 
   useEffect(() => {
     // Sayfa yüklendiğinde kullanıcı bilgisini kontrol et
     const checkAuth = () => {
       const userData = localStorage.getItem('user');
       
-      if (!userData) {
-        // Kullanıcı giriş yapmamışsa login sayfasına yönlendir
-        router.push('/portal/login');
-        setLoading(false);
-        return;
+      if (userData) {
+        // Kullanıcı bilgisi varsa kullan
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
       }
-
-      // Kullanıcı bilgisini parse et
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-
-      // Kullanıcı rolü erişim izni listesinde mi kontrol et
-      if (allowedRoles.length > 0 && !allowedRoles.includes(parsedUser.role)) {
-        // Yetkisiz erişim - kullanıcının rolüne göre uygun alana yönlendir
-        switch (parsedUser.role) {
-          case 'admin':
-            router.push('/portal/admin/dashboard');
-            break;
-          case 'carrier':
-            router.push('/portal/dashboard');
-            break;
-          case 'driver':
-            router.push('/portal/driver/dashboard');
-            break;
-          default:
-            router.push('/portal/login');
-        }
-        
-        setLoading(false);
-        return;
-      }
-
-      // Yetkilendirme başarılı
+      
+      // Doğrudan erişime izin ver - yönlendirme yapma
       setAuthenticated(true);
       setLoading(false);
     };
@@ -77,10 +51,7 @@ export function withAuth(Component, allowedRoles = []) {
       );
     }
 
-    if (!authenticated) {
-      return null; // useAuth hook içinde yönlendirme yapıldığı için boş döndür
-    }
-
+    // Her zaman erişime izin ver
     return <Component {...props} user={user} />;
   };
 } 

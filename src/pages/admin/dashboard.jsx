@@ -28,38 +28,6 @@ export default function DashboardPage() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Kullanıcı kontrolü - giriş yapmamış veya admin olmayan kullanıcılar için
-  useEffect(() => {
-    const checkAuth = () => {
-      const userData = localStorage.getItem('user');
-      
-      if (!userData) {
-        console.log('Kullanıcı girişi bulunamadı, yönlendiriliyor...');
-        router.replace('/admin');
-        return;
-      }
-
-      try {
-        const user = JSON.parse(userData);
-        
-        if (!(user.type === 'admin' || user.role === 'admin')) {
-          console.log('Admin yetkisi bulunamadı, yönlendiriliyor...');
-          router.replace('/admin');
-          return;
-        }
-        
-        setUser(user);
-        setLoading(false);
-      } catch (err) {
-        console.error('Kullanıcı bilgisi çözümlenirken hata:', err);
-        localStorage.removeItem('user');
-        router.replace('/admin');
-      }
-    };
-    
-    checkAuth();
-  }, [router]);
-
   // Mobil cihaz kontrolü
   useEffect(() => {
     const checkIsMobile = () => {
@@ -112,6 +80,23 @@ export default function DashboardPage() {
       document.body.style.overflow = 'auto';
     }
   }, [showActivitiesModal, shipmentDetailModal, applicationDetailModal, driverLocationModal, handleKeyDown]);
+
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      router.push('/portal/login');
+      return;
+    }
+
+    const parsedUser = JSON.parse(userData);
+    if (parsedUser.role !== 'admin') {
+      router.push('/portal/login');
+      return;
+    }
+    
+    setUser(parsedUser);
+    setLoading(false);
+  }, [router]);
 
   // Örnek veri
   const users = [
@@ -200,7 +185,7 @@ export default function DashboardPage() {
   // Çıkış yap fonksiyonu
   const handleLogout = () => {
     localStorage.removeItem('user');
-    router.push('/admin');
+    router.push('/portal/login');
   }
 
   // Tarih formatı

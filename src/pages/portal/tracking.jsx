@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/router';
 import PortalLayout from '../../components/portal/Layout';
-import { FaTruck, FaBox, FaSearch, FaFilter, FaPlus, FaEye, FaTimes, FaChartLine, FaUsers, FaTachometerAlt, FaStar, FaIdCard, FaCar, FaRoute, FaMapMarkerAlt, FaClock, FaUser, FaBuilding, FaPhone, FaEnvelope } from 'react-icons/fa';
+import { FaTruck, FaBox, FaSearch, FaFilter, FaPlus, FaEye, FaTimes, FaChartLine, FaUsers, FaTachometerAlt, FaStar, FaIdCard, FaCar, FaRoute, FaMapMarkerAlt, FaClock, FaUser, FaBuilding, FaPhone, FaEnvelope, FaRedo } from 'react-icons/fa';
 import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
+
+// Google Maps API anahtarı
+const GOOGLE_MAPS_API_KEY = "AIzaSyAKht3SqaVJpufUdq-vVQEfBEQKejT9Z8k";
 
 export default function Tracking() {
   const router = useRouter();
@@ -10,8 +13,11 @@ export default function Tracking() {
   const [selectedShipment, setSelectedShipment] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDriver, setSelectedDriver] = useState(null);
-  const [isScriptLoaded, setIsScriptLoaded] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapError, setMapError] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const timeoutRef = useRef(null);
   const [filters, setFilters] = useState({
     status: 'all',
     dateRange: 'all',
@@ -26,7 +32,20 @@ export default function Tracking() {
       return;
     }
     setLoading(false);
-  }, [router]);
+    
+    // Harita yükleme için 10 saniyelik bir zaman aşımı ayarla
+    timeoutRef.current = setTimeout(() => {
+      if (!mapLoaded) {
+        setLoadingTimeout(true);
+      }
+    }, 10000);
+    
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [router, mapLoaded]);
 
   // Örnek sürücü verileri
   const [drivers] = useState([
@@ -124,6 +143,22 @@ export default function Tracking() {
     lng: 32.8597
   };
 
+  // Harita options'ları memo ile optimize ediliyor
+  const mapOptions = useMemo(() => ({
+    zoomControl: true,
+    streetViewControl: false,
+    mapTypeControl: false,
+    fullscreenControl: false,
+    gestureHandling: 'greedy',
+    styles: [
+      {
+        featureType: 'poi',
+        elementType: 'labels',
+        stylers: [{ visibility: 'off' }]
+      }
+    ]
+  }), []);
+
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({
@@ -145,6 +180,40 @@ export default function Tracking() {
     });
   };
 
+  const handleMapLoad = () => {
+    setMapLoaded(true);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+  };
+
+  const handleMapError = () => {
+    setMapError(true);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+  };
+
+  const reloadMap = () => {
+    // Sayfa yeniden yüklenmeden basit bir yeniden deneme mekanizması
+    setMapError(false);
+    setLoadingTimeout(false);
+    setMapLoaded(false);
+    
+    // Yeniden yükleme öncesinde kısa bir gecikme ekleyin
+    setTimeout(() => {
+      const mapContainer = document.getElementById('map-container');
+      if (mapContainer) {
+        // İçeriği temizle ve yeniden oluştur
+        mapContainer.innerHTML = '';
+        renderMap();
+      } else {
+        // Element bulunamazsa sayfayı yenile
+        window.location.reload();
+      }
+    }, 500);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -152,6 +221,94 @@ export default function Tracking() {
       </div>
     );
   }
+
+  const renderMap = () => {
+    // Hata veya zaman aşımı durumlarında alternatif içerik göster
+    if (mapError || loadingTimeout) {
+      return (
+        <div className="h-full w-full flex items-center justify-center bg-gray-100">
+          <div className="text-center p-6">
+            <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">
+              <p>Haritada bir sorun oluştu.</p>
+              <p className="text-sm mt-2">
+                {mapError 
+                  ? "Google Maps API yüklenirken hata oluştu." 
+                  : "Harita uzun süre yüklenemedi. Bağlantınızı kontrol edin."}
+              </p>
+            </div>
+            <button 
+              onClick={reloadMap}
+              className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 flex items-center justify-center mx-auto"
+            >
+              <FaRedo className="mr-2" /> Tekrar Dene
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div id="map-container" className="h-full w-full">
+        <LoadScript 
+          googleMapsApiKey={GOOGLE_MAPS_API_KEY}
+          onLoad={handleMapLoad}
+          onError={handleMapError}
+          loadingElement={
+            <div className="h-full w-full flex items-center justify-center bg-gray-100">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-14 w-14 border-t-4 border-b-4 border-orange-500 mx-auto mb-6"></div>
+                <p className="text-gray-600">Harita yükleniyor...</p>
+                <p className="text-gray-500 text-sm mt-2">Bu işlem biraz zaman alabilir</p>
+                {!mapLoaded && !mapError && loadingTimeout && (
+                  <button 
+                    onClick={reloadMap}
+                    className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 flex items-center justify-center mx-auto"
+                  >
+                    <FaRedo className="mr-2" /> Tekrar Dene
+                  </button>
+                )}
+              </div>
+            </div>
+          }
+        >
+          <GoogleMap
+            mapContainerStyle={mapContainerStyle}
+            center={center}
+            zoom={6}
+            options={mapOptions}
+          >
+            {drivers.map(driver => (
+              <Marker
+                key={driver.id}
+                position={driver.location}
+                onClick={() => setSelectedDriver(driver)}
+                icon={{
+                  url: driver.status === 'active' 
+                    ? 'https://maps.google.com/mapfiles/ms/icons/green-dot.png'
+                    : 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'
+                }}
+              />
+            ))}
+
+            {selectedDriver && (
+              <InfoWindow
+                position={selectedDriver.location}
+                onCloseClick={() => setSelectedDriver(null)}
+              >
+                <div className="p-2">
+                  <h3 className="font-medium text-gray-900">{selectedDriver.name}</h3>
+                  <p className="text-sm text-gray-500">{selectedDriver.vehicle}</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Son güncelleme: {selectedDriver.lastUpdate}
+                  </p>
+                </div>
+              </InfoWindow>
+            )}
+          </GoogleMap>
+        </LoadScript>
+      </div>
+    );
+  };
 
   return (
     <PortalLayout title="Takip">
@@ -320,63 +477,17 @@ export default function Tracking() {
 
         {/* Harita ve Sürücü Listesi */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Harita */}
+          {/* Harita */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-md p-4">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Sürücü Konumları</h3>
               <div className="h-[600px] relative">
-                <LoadScript googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY} onLoad={() => setIsScriptLoaded(true)}>
-            <GoogleMap
-              mapContainerStyle={mapContainerStyle}
-              center={center}
-                    zoom={6}
-                    options={{
-                      zoomControl: true,
-                      streetViewControl: false,
-                      mapTypeControl: false,
-                      fullscreenControl: false,
-                      styles: [
-                        {
-                          featureType: 'poi',
-                          elementType: 'labels',
-                          stylers: [{ visibility: 'off' }]
-                        }
-                      ]
-                    }}
-                  >
-                    {isScriptLoaded && drivers.map(driver => (
-                <Marker
-                  key={driver.id}
-                  position={driver.location}
-                  onClick={() => setSelectedDriver(driver)}
-                        icon={{
-                          url: '/images/truck-marker.png',
-                          scaledSize: new window.google.maps.Size(32, 32)
-                        }}
-                />
-              ))}
-
-              {selectedDriver && (
-                <InfoWindow
-                  position={selectedDriver.location}
-                  onCloseClick={() => setSelectedDriver(null)}
-                >
-                  <div className="p-2">
-                          <h3 className="font-medium text-gray-900">{selectedDriver.name}</h3>
-                          <p className="text-sm text-gray-500">{selectedDriver.vehicle}</p>
-                          <p className="text-xs text-gray-400 mt-1">
-                            Son güncelleme: {selectedDriver.lastUpdate}
-                          </p>
-                  </div>
-                </InfoWindow>
-              )}
-            </GoogleMap>
-          </LoadScript>
+                {renderMap()}
               </div>
             </div>
-        </div>
+          </div>
 
-        {/* Sürücü Listesi */}
+          {/* Sürücü Listesi */}
           <div>
             <div className="bg-white rounded-lg shadow-md p-4">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Aktif Sürücüler</h3>
@@ -758,8 +869,8 @@ export default function Tracking() {
               </button>
             </div>
           </div>
-          </div>
-        )}
+        </div>
+      )}
     </PortalLayout>
   );
 } 

@@ -1,154 +1,49 @@
-const { MongoClient } = require('mongodb');
+const mongoose = require('mongoose');
 
-const MONGODB_URI = process.env.MONGODB_URI;
-const MONGODB_DB = process.env.MONGODB_DB;
+// MongoDB bağlantı URI'sini oluştur
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/tasiapp';
 
-if (!MONGODB_URI) {
-  throw new Error('MONGODB_URI ortam değişkeni tanımlanmamış');
+// MongoDB bağlantı durumunu tutan değişkenler
+let cached = global.mongoose;
+
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
 }
 
-if (!MONGODB_DB) {
-  throw new Error('MONGODB_DB ortam değişkeni tanımlanmamış');
-}
+/**
+ * MongoDB veritabanına bağlantı kurulmasını sağlayan fonksiyon
+ * @returns {Promise<Mongoose>} Mongoose bağlantı nesnesi
+ */
+async function connectToDatabase() {
+  if (cached.conn) {
+    console.log('Mevcut MongoDB bağlantısı kullanılıyor');
+    return cached.conn;
+  }
 
-console.log(`MongoDB bağlantısı için URI ayarlandı: ${MONGODB_URI.substring(0, 15)}...`);
-console.log(`MongoDB veritabanı: ${MONGODB_DB}`);
-
-let cachedClient = null;
-let cachedDb = null;
-let connectionAttempts = 0;
-const MAX_RETRY_ATTEMPTS = 3;
-
-export async function connectToDatabase() {
-  try {
-    connectionAttempts++;
-    
-    // Bağlantı denemesi detaylarını logla
-    const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] MongoDB bağlantı denemesi #${connectionAttempts}/${MAX_RETRY_ATTEMPTS}`);
-    
-    // Cached bağlantı varsa onu kullan
-    if (cachedClient && cachedDb) {
-      // Bağlantı hala yaşıyor mu kontrol et
-      try {
-        const pingStartTime = Date.now();
-        await cachedClient.db().admin().ping();
-        const pingDuration = Date.now() - pingStartTime;
-        console.log(`MongoDB mevcut bağlantı ping süresi: ${pingDuration}ms`);
-        
-        if (pingDuration > 1000) {
-          console.warn(`MongoDB ping yanıtı yavaş: ${pingDuration}ms - Ancak bağlantı hala aktif`);
-        }
-        
-        return { client: cachedClient, db: cachedDb };
-      } catch (pingError) {
-        console.warn('Mevcut MongoDB bağlantısı kesilmiş veya yanıt vermiyor:', pingError.message);
-        console.log('Yeni bağlantı kuruluyor...');
-        
-        // Bozuk bağlantıyı kapat
-        try {
-          await cachedClient.close();
-        } catch (closeError) {
-          console.error('Eski bağlantı kapatılırken hata:', closeError.message);
-        }
-        
-        cachedClient = null;
-        cachedDb = null;
-      }
-    }
-
-    console.log('Yeni MongoDB bağlantısı kuruluyor...');
-    
-    // Veritabanı URL'sini kontrol et
-    if (!MONGODB_URI.startsWith('mongodb')) {
-      throw new Error('Geçersiz MongoDB bağlantı URL formatı');
-    }
-    
-    // Bağlantı seçeneklerini optimize et
-    const clientOptions = {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      maxPoolSize: 50, // Bağlantı havuzu boyutunu artır
-      serverSelectionTimeoutMS: 30000, // 30 saniye sunucu seçim zaman aşımı
-      socketTimeoutMS: 120000, // 120 saniye soket zaman aşımı
-      connectTimeoutMS: 60000, // 60 saniye bağlantı zaman aşımı
-      heartbeatFrequencyMS: 5000, // Daha sık canlılık kontrolü
-      minPoolSize: 10, // Minimum 10 bağlantı
-      maxIdleTimeMS: 300000, // 5 dakika atıl bağlantı süresi
-      waitQueueTimeoutMS: 30000, // Kuyrukta bekle süresi 30 saniye
-      family: 4, // IPV4 kullanımını zorla
-      retryWrites: true, // Yazma işlemlerini otomatik yeniden dene
-      retryReads: true, // Okuma işlemlerini otomatik yeniden dene
-      w: 'majority', // Yazma işlemlerinin çoğunluk onayı ile yapılmasını sağla
-      wtimeoutMS: 30000 // Yazma zaman aşımı 30 saniye
+  if (!cached.promise) {
+    const opts = {
+      serverSelectionTimeoutMS: 5000, // 5 saniye
+      socketTimeoutMS: 45000, // 45 saniye
     };
-    
-    // Yeni bağlantı oluştur
-    console.log('MongoDB istemcisi oluşturuluyor, bağlantı seçenekleri:', JSON.stringify(clientOptions));
-    
-    const client = new MongoClient(MONGODB_URI, clientOptions);
 
-    // Bağlanma işlemini başlat ve ölç
-    const connectStartTime = Date.now();
-    console.log('MongoDB bağlantısı başlatılıyor...');
-    
-    await client.connect();
-    
-    const connectDuration = Date.now() - connectStartTime;
-    console.log(`MongoDB bağlantısı başarılı, süre: ${connectDuration}ms`);
-    
-    const db = client.db(MONGODB_DB);
-    console.log(`MongoDB veritabanına erişildi: ${MONGODB_DB}`);
+    console.log('MongoDB bağlantısı kuruluyor...');
+    cached.promise = mongoose.connect(MONGODB_URI, opts)
+      .then(mongoose => {
+        console.log('MongoDB bağlantısı başarılı');
+        return mongoose;
+      })
+      .catch(error => {
+        console.error('MongoDB bağlantı hatası:', error);
+        throw error;
+      });
+  }
 
-    // Bağlantı olaylarını dinle
-    client.on('serverOpening', (event) => {
-      console.log(`MongoDB sunucusuna bağlanılıyor: ${event.address}`);
-    });
-    
-    client.on('serverClosed', (event) => {
-      console.log(`MongoDB sunucusu bağlantısı kapandı: ${event.address}`);
-    });
-    
-    client.on('timeout', (event) => {
-      console.warn(`MongoDB zaman aşımı oluştu: ${event}`);
-    });
-
-    // Bağlantıyı cache'le
-    cachedClient = client;
-    cachedDb = db;
-
-    console.log('MongoDB bağlantısı başarıyla kuruldu ve önbelleğe alındı');
-    
-    // Bağlantı başarılıysa sayacı sıfırla
-    connectionAttempts = 0;
-    
-    return { client, db };
+  try {
+    cached.conn = await cached.promise;
+    return cached.conn;
   } catch (error) {
-    console.error('MongoDB bağlantı hatası:', error.message);
-    console.error('Hata stack:', error.stack);
-    
-    // Bağlantı hata türüne göre log
-    if (error.name === 'MongoServerSelectionError') {
-      console.error('MongoDB sunucu seçim hatası - muhtemelen ağ veya firewall sorunu');
-    } else if (error.name === 'MongoNetworkError') {
-      console.error('MongoDB ağ hatası - internet bağlantısı kontrol edilmeli');
-    } else if (error.name === 'MongoParseError') {
-      console.error('MongoDB bağlantı URL parse hatası - URL doğru formatta değil');
-    }
-    
-    // Yeniden deneme yap (maksimum deneme sayısını aşmadıysa)
-    if (connectionAttempts < MAX_RETRY_ATTEMPTS) {
-      console.log(`MongoDB bağlantısı yeniden deneniyor... (${connectionAttempts}/${MAX_RETRY_ATTEMPTS})`);
-      
-      // Her denemede bekleme süresini artır (exponential backoff)
-      const retryDelayMs = Math.min(1000 * Math.pow(2, connectionAttempts - 1), 10000);
-      console.log(`Yeniden deneme öncesi ${retryDelayMs}ms bekleniyor...`);
-      
-      await new Promise(resolve => setTimeout(resolve, retryDelayMs));
-      return connectToDatabase();
-    }
-    
-    throw new Error(`Veritabanına bağlanırken hata oluştu (${connectionAttempts} deneme sonrası): ${error.message}`);
+    cached.promise = null;
+    throw error;
   }
 }
 
@@ -156,33 +51,26 @@ export async function connectToDatabase() {
  * MongoDB bağlantısını kapatmak için kullanılan fonksiyon
  */
 async function disconnectFromDatabase() {
-  if (cachedClient) {
-    try {
-      console.log('MongoDB bağlantısı kapatılıyor...');
-      await cachedClient.close();
-      cachedClient = null;
-      cachedDb = null;
-      console.log('MongoDB bağlantısı kapatıldı');
-    } catch (error) {
-      console.error('MongoDB bağlantısı kapatılırken hata:', error);
-    }
+  if (cached.conn) {
+    await mongoose.disconnect();
+    cached.conn = null;
+    cached.promise = null;
+    console.log('MongoDB bağlantısı kapatıldı');
   }
 }
 
 // Veritabanı bağlantı durumu değiştiğinde tetiklenecek olayları dinle
-if (cachedClient) {
-  cachedClient.on('connected', () => {
-    console.log('MongoDB\'ye bağlandı');
-  });
+mongoose.connection.on('connected', () => {
+  console.log('MongoDB\'ye bağlandı');
+});
 
-  cachedClient.on('error', (err) => {
-    console.error('MongoDB bağlantı hatası:', err);
-  });
+mongoose.connection.on('error', (err) => {
+  console.error('MongoDB bağlantı hatası:', err);
+});
 
-  cachedClient.on('disconnected', () => {
-    console.log('MongoDB bağlantısı kesildi');
-  });
-}
+mongoose.connection.on('disconnected', () => {
+  console.log('MongoDB bağlantısı kesildi');
+});
 
 // Uygulama kapandığında MongoDB bağlantısını kapat
 process.on('SIGINT', async () => {

@@ -1,46 +1,53 @@
 import '../styles/globals.css'
-import { AuthProvider } from '../lib/auth-context'
-import { useRouter } from 'next/router'
-import { useEffect } from 'react'
+import Head from 'next/head'
 import Script from 'next/script'
+import { useEffect } from 'react'
+import { useRouter } from 'next/router'
+import { AuthProvider } from '../lib/auth-context'
 
 function MyApp({ Component, pageProps }) {
-  const router = useRouter();
+  const router = useRouter()
   
-  // Sayfa geçişlerinde yükleme göstergesi için
+  // Sayfa düzenini özelleştirme desteği
+  const getLayout = Component.getLayout || ((page) => page)
+
+  // Sayfa değişikliklerinde URL'i takip et
   useEffect(() => {
-    const handleStart = () => {
-      // Yükleme başladı - burada yükleme göstergesi gösterilebilir
-      console.log('Sayfa yükleniyor...');
-    };
-    
-    const handleComplete = () => {
-      // Yükleme tamamlandı - burada yükleme göstergesi gizlenebilir
-      console.log('Sayfa yüklendi');
-    };
+    const handleRouteChange = url => {
+      console.log(`App navigated to: ${url}`)
+      
+      // Google Analytics veya diğer takip kodları burada çalıştırılabilir
+      
+      // Sayfanın en üstüne kaydır
+      window.scrollTo(0, 0)
+    }
 
-    router.events.on('routeChangeStart', handleStart);
-    router.events.on('routeChangeComplete', handleComplete);
-    router.events.on('routeChangeError', handleComplete);
-
+    router.events.on('routeChangeComplete', handleRouteChange)
     return () => {
-      router.events.off('routeChangeStart', handleStart);
-      router.events.off('routeChangeComplete', handleComplete);
-      router.events.off('routeChangeError', handleComplete);
-    };
-  }, [router]);
+      router.events.off('routeChangeComplete', handleRouteChange)
+    }
+  }, [router.events])
 
   return (
     <>
-      <Script
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Taşı App - Taşıma ve Lojistik</title>
+      </Head>
+      
+      {/* Google Maps API sadece bir kez yükleniyor */}
+      <Script 
+        id="google-maps-api"
         src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places,geometry&v=weekly`}
-        strategy="beforeInteractive"
+        strategy="afterInteractive"
+        loading="async"
       />
+      
       <AuthProvider>
-        <Component {...pageProps} />
+        {getLayout(<Component {...pageProps} />)}
       </AuthProvider>
     </>
   )
 }
 
-export default MyApp; 
+export default MyApp 

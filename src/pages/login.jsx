@@ -27,24 +27,26 @@ const Login = () => {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
+    setLoading(true);
+    setError('');
     
     try {
-      const result = await login(formData.email, formData.password)
+      const result = await login(formData.email, formData.password);
       
       if (!result.success) {
-        setError(result.error || 'Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin.')
+        setError(result.error || 'Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin.');
       }
       // Başarılı girişte kullanıcı yönlendirme işlemi authProvider içinde yapılıyor
     } catch (error) {
-      console.error('Login error:', error)
-      setError('Giriş sırasında bir hata oluştu')
+      console.error('Login error:', error);
+      setError('Giriş sırasında bir hata oluştu');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

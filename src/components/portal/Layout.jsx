@@ -204,127 +204,61 @@ export default function PortalLayout({ children, title = 'Taşıyıcı Portalı'
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <>
       <Head>
-        <title>{title} - Taşı App</title>
+        <title>{title ? `${title} | Taşı Portal` : 'Taşı Portal'}</title>
+        <meta name="description" content="Taşı Portal - Taşıma İşlemlerinizi Yönetin" />
+        <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      {/* Üst Menü */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            {/* Logo ve Menü Butonu */}
-            <div className="flex">
-              <div className="flex-shrink-0 flex items-center">
-                <button
-                  onClick={() => setSidebarOpen(!sidebarOpen)}
-                  className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none"
-                >
-                  {sidebarOpen ? <FaTimes className="h-6 w-6" /> : <FaBars className="h-6 w-6" />}
-                </button>
-                <Link href="/portal/dashboard" className="flex items-center">
-                  <Image src="/logo.png" alt="Taşı App" width={40} height={40} className="ml-2" />
-                  <span className="ml-2 text-xl font-bold text-gray-900">Taşı App</span>
+      <div className="flex h-screen bg-gray-50">
+        {/* Sidebar - Masaüstü */}
+        <div className="hidden md:flex md:flex-shrink-0">
+          <div className="flex flex-col w-64 border-r border-gray-200 bg-white">
+            <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto">
+              <div className="flex items-center flex-shrink-0 px-4 mb-5">
+                <Link href="/portal/dashboard" className="text-2xl font-bold text-orange-500 hover:text-orange-600 transition-colors duration-200">
+                  <Image
+                    src="/portal_logo.png"
+                    alt="Taşı Portal Logo"
+                    width={120}
+                    height={40}
+                    className="cursor-pointer"
+                    priority
+                  />
                 </Link>
               </div>
-            </div>
-
-            {/* Sağ Taraf - Bildirimler ve Profil */}
-            <div className="flex items-center">
-              {/* Bildirimler */}
-              <div className="relative ml-3">
-                <button
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className="p-2 rounded-full text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none"
-                >
-                  <FaBell className="h-6 w-6" />
-                  {notifications.length > 0 && (
-                    <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
-                  )}
-                </button>
-                {/* Bildirim Dropdown */}
-                {showNotifications && (
-                  <div className="notifications-dropdown origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
-                    {/* Bildirim içeriği */}
-                  </div>
-                )}
-              </div>
-
-              {/* Profil - Her zaman görünür */}
-              <div className="relative ml-3">
-                <button
-                  onClick={() => setShowProfileMenu(!showProfileMenu)}
-                  className="flex items-center p-2 rounded-full text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none"
-                >
-                  <FaUser className="h-6 w-6" />
-                  {!isMobile && (
-                    <span className="ml-2 text-sm font-medium">{user?.name || 'Kullanıcı'}</span>
-                  )}
-                </button>
-                {/* Profil Dropdown */}
-                {showProfileMenu && (
-                  <div className="profile-dropdown origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
-                    <div className="py-1">
-                      <Link href="/portal/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                        Profil
-                      </Link>
-                      <Link href="/portal/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                        Ayarlar
-                      </Link>
-                      <button
-                        onClick={handleLogout}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        Çıkış Yap
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Ana İçerik */}
-      <div className="flex">
-        {/* Sidebar */}
-        <div className={`${sidebarOpen ? 'block' : 'hidden'} lg:block lg:flex-shrink-0`}>
-          <div className="h-full w-64 bg-white border-r border-gray-200">
-            <div className="h-full flex flex-col">
-              {/* Sidebar İçeriği */}
-              <nav className="flex-1 p-4 space-y-2">
-                {navigation.map((item) => (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={`flex items-center px-3 py-2 rounded-md text-sm font-medium ${
-                      router.pathname === item.href
-                        ? 'bg-orange-100 text-orange-700'
-                        : 'text-gray-700 hover:bg-orange-50 hover:text-orange-700'
-                    }`}
-                  >
-                    <item.icon className={`mr-3 h-5 w-5 ${
-                      router.pathname === item.href ? 'text-orange-500' : 'text-gray-400'
-                    }`} />
-                    {item.name}
-                  </Link>
-                ))}
+              <nav className="mt-5 flex-1 px-2 space-y-1">
+                {navigation.map((item) => {
+                  const isActive = router.pathname === item.href;
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={`flex items-center px-4 py-3 text-sm font-medium rounded-md transition-all duration-200 ${
+                        isActive
+                          ? 'bg-orange-100 text-orange-700'
+                          : 'text-gray-600 hover:bg-orange-50 hover:text-orange-700'
+                      }`}
+                    >
+                      <item.icon className={`mr-3 h-5 w-5 ${isActive ? 'text-orange-500' : 'text-gray-400'}`} />
+                      {item.name}
+                    </Link>
+                  );
+                })}
               </nav>
-
-              {/* Kullanıcı Bilgisi */}
-              <div className="p-4 border-t border-gray-200">
+            </div>
+            <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
+              <div className="flex-shrink-0 w-full">
                 <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
-                      <span className="text-orange-700 font-medium">
-                        {user?.name?.charAt(0) || 'U'}
-                      </span>
-                    </div>
+                  <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-orange-100">
+                    <span className="text-sm font-medium leading-none text-orange-700">
+                      {user.companyName ? user.companyName.charAt(0).toUpperCase() : 'U'}
+                    </span>
                   </div>
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-900">{user?.name || 'Kullanıcı'}</p>
-                    <p className="text-xs text-gray-500">{user?.email || ''}</p>
+                    <p className="text-base font-bold text-gray-900">{user.companyName}</p>
+                    <p className="text-sm text-gray-500">{user.name}</p>
                   </div>
                 </div>
               </div>
@@ -332,11 +266,288 @@ export default function PortalLayout({ children, title = 'Taşıyıcı Portalı'
           </div>
         </div>
 
-        {/* Ana İçerik Alanı */}
-        <main className="flex-1 p-4">
-          {children}
-        </main>
+        {/* Mobil Menü */}
+        <div className={`fixed inset-0 flex z-40 md:transition-all transform ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setIsMenuOpen(false)}></div>
+          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white">
+            <div className="absolute top-0 right-0 -mr-12 pt-2">
+              <button 
+                onClick={() => setIsMenuOpen(false)}
+                className="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-orange-500"
+              >
+                <FaTimes className="h-6 w-6 text-white" />
+              </button>
+            </div>
+            <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
+              <div className="flex-shrink-0 flex items-center px-4 mb-5">
+                <Link href="/portal/dashboard" className="text-2xl font-bold text-orange-500 hover:text-orange-600 transition-colors duration-200">
+                  <Image
+                    src="/portal_logo.png"
+                    alt="Taşı Portal Logo"
+                    width={120}
+                    height={40}
+                    className="cursor-pointer"
+                    priority
+                  />
+                </Link>
+              </div>
+              <nav className="mt-5 px-2 space-y-1">
+                {navigation.map((item) => {
+                  const isActive = router.pathname === item.href;
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={`flex items-center px-4 py-3 text-sm font-medium rounded-md transition-all duration-200 ${
+                        isActive
+                          ? 'bg-orange-100 text-orange-700'
+                          : 'text-gray-600 hover:bg-orange-50 hover:text-orange-700'
+                      }`}
+                    >
+                      <item.icon className={`mr-3 h-5 w-5 ${isActive ? 'text-orange-500' : 'text-gray-400'}`} />
+                      {item.name}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+            <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
+              <div className="flex-shrink-0 w-full">
+                <div className="flex items-center">
+                  <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-orange-100">
+                    <span className="text-sm font-medium leading-none text-orange-700">
+                      {user.companyName ? user.companyName.charAt(0).toUpperCase() : 'U'}
+                    </span>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-base font-bold text-gray-900">{user.companyName}</p>
+                    <p className="text-sm text-gray-500">{user.name}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main content */}
+        <div className="flex flex-col w-0 flex-1 overflow-hidden">
+          {/* Mobil Header */}
+          <div className="md:hidden bg-white shadow-sm z-10">
+            <div className="flex items-center justify-between px-3 py-2">
+              {/* Mobil menü butonu ve sayfa başlığı */}
+              <div className="flex items-center">
+                <button
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-orange-500"
+                >
+                  <FaBars className="h-5 w-5" />
+                </button>
+                <div className="ml-2">
+                  <h1 className="text-base font-medium text-gray-800">{title}</h1>
+                </div>
+              </div>
+              
+              {/* Sağ taraf */}
+              <div className="flex items-center space-x-3">
+                {/* Durum */}
+                <div className={`flex items-center px-2 py-1 rounded-md border ${getStatusClass()}`}>
+                  {getStatusIcon()}
+                  <span className="ml-1 text-xs font-medium">{carrierStatus === 'active' ? 'Aktif' : carrierStatus === 'document_expired' ? 'Evrak' : 'Pasif'}</span>
+                </div>
+                
+                {/* Bildirim butonu */}
+                <div className="relative">
+                  <button 
+                    className="relative p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none"
+                    onClick={() => setShowNotifications(!showNotifications)}
+                  >
+                    <FaBell className="h-5 w-5" />
+                    {/* Okunmamış bildirim varsa */}
+                    <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-1 ring-white"></span>
+                  </button>
+                </div>
+                
+                {/* Profil butonu */}
+                <div className="relative">
+                  <button 
+                    className="relative p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none"
+                    onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  >
+                    <FaUser className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            {/* Tarih ve saat bilgisi - Tek satırda yan yana */}
+            <div className="flex items-center justify-end px-3 py-1 border-t border-gray-100 text-xs text-gray-500">
+              <div className="flex items-center">
+                <FaCalendarAlt className="h-3 w-3 mr-1 text-orange-500" />
+                <span>{currentTime.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                <span className="mx-2">•</span>
+                <FaClock className="h-3 w-3 mr-1 text-orange-500" />
+                <span>{currentTime.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+            </div>
+          </div>
+          
+          {showNotifications && (
+            <div className="fixed inset-0 z-50 md:hidden" onClick={() => setShowNotifications(false)}>
+              <div className="absolute inset-0 bg-gray-600 bg-opacity-75"></div>
+              <div className="absolute top-14 right-2 w-[calc(100%-1rem)] max-w-xs bg-white rounded-md shadow-lg overflow-hidden notifications-dropdown" onClick={(e) => e.stopPropagation()}>
+                <div className="px-3 py-2 border-b border-gray-200 flex justify-between items-center">
+                  <h3 className="font-medium text-gray-800">Bildirimler</h3>
+                  <button onClick={() => setShowNotifications(false)}>
+                    <FaTimes className="h-4 w-4 text-gray-400" />
+                  </button>
+                </div>
+                <div className="py-1 max-h-96 overflow-y-auto">
+                  {notifications.length > 0 ? (
+                    notifications.map((notification, index) => (
+                      <div key={index} className="px-4 py-3 hover:bg-gray-100 border-b border-gray-100">
+                        <p className="text-sm text-gray-800">{notification.message}</p>
+                        <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-4 py-4 text-sm text-gray-500 text-center">
+                      Henüz bildiriminiz yok
+                    </div>
+                  )}
+                </div>
+                <div className="border-t border-gray-200 py-2 px-4">
+                  <button className="w-full text-center text-sm text-orange-600 font-medium" onClick={() => router.push('/portal/messages')}>
+                    Tüm Bildirimleri Görüntüle
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {showProfileMenu && (
+            <div className="fixed inset-0 z-50 md:hidden" onClick={() => setShowProfileMenu(false)}>
+              <div className="absolute inset-0 bg-gray-600 bg-opacity-75"></div>
+              <div className="absolute top-14 right-2 w-48 bg-white rounded-md shadow-lg overflow-hidden profile-dropdown" onClick={(e) => e.stopPropagation()}>
+                <div className="py-2 px-3 border-b border-gray-200">
+                  <p className="text-sm font-medium text-gray-800">{user.name}</p>
+                  <p className="text-xs text-gray-500">{user.companyName}</p>
+                </div>
+                <div className="py-1">
+                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => router.push('/portal/profile')}>
+                    Profil
+                  </button>
+                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => router.push('/portal/settings')}>
+                    Ayarlar
+                  </button>
+                  <div className="border-t border-gray-200">
+                    <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100" onClick={handleLogout}>
+                      Çıkış Yap
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Desktop Header */}
+          <div className="hidden md:flex md:items-center md:justify-between p-4 border-b border-gray-200 bg-white shadow-sm">
+            <div>
+              <div className="flex items-center">
+                <h1 className="text-2xl font-bold">{title}</h1>
+                <div className="mx-4 h-6 w-px bg-gray-300"></div>
+                <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                  carrierStatus === 'active' ? 'bg-green-100 text-green-800' : 
+                  carrierStatus === 'document_expired' ? 'bg-yellow-100 text-yellow-800' : 
+                  'bg-red-100 text-red-800'
+                }`}>
+                  {carrierStatus === 'active' ? 'Aktif ✓' : 
+                   carrierStatus === 'document_expired' ? 'Evrak Bekliyor !' : 
+                   'Pasif ✕'}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="text-right">
+                <div className="flex items-center justify-end text-sm text-gray-600">
+                  <FaCalendarAlt className="h-4 w-4 mr-1 text-orange-500" />
+                  <span>{formatDate(currentTime)}</span>
+                </div>
+                <div className="flex items-center justify-end text-sm text-gray-600 mt-1">
+                  <FaClock className="h-4 w-4 mr-1 text-orange-500" />
+                  <span>{formatTime(currentTime)}</span>
+                </div>
+              </div>
+              <div className="relative">
+                <button 
+                  className="relative p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                  onClick={() => setShowNotifications(!showNotifications)}
+                >
+                  <FaBell className="h-6 w-6" />
+                  <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white"></span>
+                </button>
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg overflow-hidden z-50 notifications-dropdown">
+                    <div className="py-1">
+                      {notifications.length > 0 ? (
+                        notifications.slice(0, 5).map((notification, index) => (
+                          <div key={index} className="px-4 py-2 hover:bg-gray-100">
+                            <p className="text-sm text-gray-800">{notification.message}</p>
+                            <p className="text-xs text-gray-500">{notification.time}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-4 py-2 text-sm text-gray-500">
+                          Henüz Sistem Mesajınız yok
+                        </div>
+                      )}
+                      <div className="border-t border-gray-200">
+                        <button className="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-100" onClick={() => router.push('/portal/messages')}>
+                          Tüm Sistem Mesajları
+                        </button>
+                      </div>
+                    </div>
+                    <button className="absolute top-2 right-2 text-gray-400 hover:text-gray-500" onClick={() => setShowNotifications(false)}>
+                      <FaTimes className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="relative">
+                <button 
+                  className="relative p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                >
+                  <FaUser className="h-6 w-6" />
+                </button>
+                {showProfileMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg overflow-hidden z-50 profile-dropdown">
+                    <div className="py-1">
+                      <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => router.push('/portal/profile')}>
+                        Profil
+                      </button>
+                      <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => router.push('/portal/settings')}>
+                        Ayarlar
+                      </button>
+                      <div className="border-t border-gray-200">
+                        <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100" onClick={handleLogout}>
+                          Çıkış Yap
+                        </button>
+                      </div>
+                    </div>
+                    <button className="absolute top-2 right-2 text-gray-400 hover:text-gray-500" onClick={() => setShowProfileMenu(false)}>
+                      <FaTimes className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <main className="flex-1 relative overflow-y-auto focus:outline-none">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

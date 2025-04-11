@@ -1,0 +1,63 @@
+// MongoDB bağlantı modülü - Sadece ESM (ES Module) formatında
+import { MongoClient } from 'mongodb';
+
+// Bağlantı bilgileri
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://infotasiapp:Tasi2025.@cluster0.ttipxu5.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+const MONGODB_DB = process.env.MONGODB_DB || 'tasiapp';
+
+// Log
+console.log(`MongoDB bağlantısı için URI ayarlandı: ${MONGODB_URI.substring(0, 15)}...`);
+console.log(`MongoDB veritabanı: ${MONGODB_DB}`);
+
+// Bağlantı önbelleği
+let cachedClient = null;
+let cachedDb = null;
+
+// Veritabanına bağlanma fonksiyonu
+export async function connectToDatabase() {
+  // Önbellekte bağlantı varsa kullan
+  if (cachedClient && cachedDb) {
+    return { client: cachedClient, db: cachedDb };
+  }
+
+  console.log('Yeni MongoDB bağlantısı kuruluyor...');
+  
+  // Bağlantı seçenekleri
+  const clientOptions = {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  };
+  
+  try {
+    // Yeni bağlantı oluştur
+    const client = new MongoClient(MONGODB_URI, clientOptions);
+    await client.connect();
+    
+    const db = client.db(MONGODB_DB);
+    console.log(`MongoDB veritabanına erişildi: ${MONGODB_DB}`);
+
+    // Bağlantıyı önbelleğe al
+    cachedClient = client;
+    cachedDb = db;
+    
+    return { client, db };
+  } catch (error) {
+    console.error('MongoDB bağlantı hatası:', error.message);
+    throw error;
+  }
+}
+
+// Bağlantıyı kapatma fonksiyonu
+export async function disconnectFromDatabase() {
+  if (cachedClient) {
+    try {
+      console.log('MongoDB bağlantısı kapatılıyor...');
+      await cachedClient.close();
+      cachedClient = null;
+      cachedDb = null;
+      console.log('MongoDB bağlantısı kapatıldı');
+    } catch (error) {
+      console.error('MongoDB bağlantısı kapatılırken hata:', error);
+    }
+  }
+} 
