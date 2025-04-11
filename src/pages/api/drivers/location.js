@@ -14,7 +14,8 @@ export default async function handler(req, res) {
     // CORS başlıklarını ekle - Tüm kaynaklardan gelen isteklere izin ver
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
     
     // OPTIONS isteğine hemen yanıt ver
     if (req.method === 'OPTIONS') {
@@ -97,7 +98,11 @@ export default async function handler(req, res) {
           return await updateDriverLocation(req, res);
         default:
           res.setHeader('Allow', ['GET', 'POST']);
-          return res.status(405).json({ error: `Method ${method} not allowed` });
+          return res.status(200).json({ 
+            success: false,
+            error: `Method ${method} not allowed`,
+            code: 'METHOD_NOT_ALLOWED'
+          });
       }
     });
     
