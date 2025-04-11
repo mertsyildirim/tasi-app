@@ -449,27 +449,3 @@ export default function AdminLayout({ children, title }) {
     </div>
   )
 } 
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8">
-                  <FaRegBell className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">Bildirim yok</h3>
-                  <p className="mt-1 text-sm text-gray-500">Henüz size gönderilmiş bir bildirim yok.</p>
-                </div>
-              )}
-              </div>
-            <div className="p-4 border-t border-gray-200 flex justify-end sticky bottom-0 bg-white z-10">
-              <button 
-                onClick={() => setShowAllNotifications(false)}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded flex items-center"
-              >
-                <FaTimes className="mr-2" /> Kapat
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-} 
