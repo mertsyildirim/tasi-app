@@ -17,6 +17,9 @@ export default function ShipmentsPage() {
   const [map, setMap] = useState(null)
   const [vehiclePosition, setVehiclePosition] = useState(null)
 
+  // Sürücü konumu için state
+  const [driverLocations, setDriverLocations] = useState({})
+
   // Google Maps yükleme
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
@@ -134,6 +137,76 @@ export default function ShipmentsPage() {
     };
   }, [showShipmentDetailModal, showImagesModal]);
 
+  // Sürücü konumunu güncelle
+  const updateDriverLocation = (driverId, location) => {
+    if (!location || !location.coords) return;
+    
+    setDriverLocations(prev => ({
+      ...prev,
+      [driverId]: {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        formattedTime: new Date().toLocaleTimeString('tr-TR')
+      }
+    }));
+  };
+
+  // Konum güncellemelerini dinle
+  useEffect(() => {
+    if (!showShipmentDetailModal || showShipmentDetailModal.status !== 'Taşınıyor') return;
+
+    const driverId = showShipmentDetailModal.driverEmail;
+    if (!driverId) return;
+
+    // WebSocket bağlantısı kur (örnek)
+    const ws = new WebSocket(process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001');
+    
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'location' && data.driverId === driverId) {
+          updateDriverLocation(driverId, {
+            coords: {
+              latitude: data.latitude,
+              longitude: data.longitude
+            }
+          });
+          
+          // Modal'ı güncelle
+          setShowShipmentDetailModal(prev => ({
+            ...prev,
+            driverLocation: {
+              latitude: data.latitude,
+              longitude: data.longitude,
+              formattedTime: new Date().toLocaleTimeString('tr-TR')
+            }
+          }));
+        }
+      } catch (error) {
+        console.error('Konum verisi işlenirken hata:', error);
+      }
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, [showShipmentDetailModal]);
+
+  // Taşıma detaylarını göster
+  const showShipmentDetails = (shipment) => {
+    // Sürücü konumunu ekle
+    const shipmentWithLocation = {
+      ...shipment,
+      driverLocation: driverLocations[shipment.driverEmail]
+    };
+    setShowShipmentDetailModal(shipmentWithLocation);
+    
+    // 300ms bekleyerek modal açıldıktan sonra rota çizimini başlat
+    setTimeout(() => {
+      getRoute(shipment.from, shipment.to);
+    }, 300);
+  };
+
   // Örnek taşıma verileri
   const shipments = [
     { 
@@ -166,20 +239,25 @@ export default function ShipmentsPage() {
       cargoType: 'Ofis Malzemeleri',
       vehicleType: 'Kamyonet' 
     },
-    { 
-      id: 3, 
-      customer: 'Ali Öztürk',
-      customerCompany: 'Öztürk Market',
-      carrier: 'Mehmet Kaya', 
-      carrierCompany: 'Kaya Nakliyat',
-      from: 'İzmir, Karşıyaka', 
-      to: 'İzmir, Konak', 
-      status: 'Tarih Bekliyor', 
-      amount: '₺280',
-      carrierPayment: '₺230', 
-      date: '07.04.2023',
-      cargoType: 'Gıda Ürünleri',
-      vehicleType: 'Soğutucu Kamyon' 
+    {
+      id: 3,
+      customer: 'Demo Kullanıcı',
+      customerCompany: 'Demo Şirketi',
+      carrier: 'Sürücü Demo',
+      carrierCompany: 'Taşı App',
+      from: 'Ankara, Çankaya',
+      to: 'İstanbul, Beşiktaş',
+      status: 'Taşınıyor',
+      amount: '₺3500',
+      carrierPayment: '₺2800',
+      date: new Date().toLocaleDateString('tr-TR'),
+      cargoType: 'Elektronik Eşya',
+      vehicleType: 'Kamyon',
+      customerEmail: 'demo@tasiapp.com',
+      driverEmail: 'surucu@tasiapp.com',
+      vehicle: '06 ABC 123',
+      weight: '850 kg',
+      notes: 'Kırılabilir eşya, dikkatli taşınması gerekiyor.'
     },
     { 
       id: 4, 
@@ -436,7 +514,7 @@ export default function ShipmentsPage() {
                       <button 
                         className="text-blue-600 hover:text-blue-900 transition-colors" 
                         title="Görüntüle"
-                        onClick={() => setShowShipmentDetailModal(shipment)}
+                        onClick={() => showShipmentDetails(shipment)}
                       >
                         <FaEye className="w-5 h-5" />
                       </button>
@@ -502,35 +580,31 @@ export default function ShipmentsPage() {
                       </div>
                     </div>
                     
-                    <div className="mb-4">
-                      <div className="flex items-center mb-2">
-                        <FaCompass className="text-orange-500 mr-2" />
-                        <span className="font-medium">Rota Bilgileri</span>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Nereden</p>
+                        <p className="font-medium">{showShipmentDetailModal.from}</p>
                       </div>
-                      <div className="bg-white p-4 rounded-lg shadow-sm">
-                        <div className="flex items-center mb-3">
-                          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-2">
-                            <FaMapMarkerAlt className="text-green-600" />
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Alınacak Konum</p>
-                            <p className="font-medium">{showShipmentDetailModal.from}</p>
-                          </div>
-                        </div>
-                        <div className="border-l-2 border-dashed border-gray-300 h-8 ml-4"></div>
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mr-2">
-                            <FaMapMarkerAlt className="text-red-600" />
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Teslim Edilecek Konum</p>
-                            <p className="font-medium">{showShipmentDetailModal.to}</p>
-                          </div>
-                        </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Nereye</p>
+                        <p className="font-medium">{showShipmentDetailModal.to}</p>
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Durum</p>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(showShipmentDetailModal.status)}`}>
+                          {showShipmentDetailModal.status}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Tarih</p>
+                        <p className="font-medium">{showShipmentDetailModal.date}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm text-gray-500">Yük Tipi</p>
                         <p className="font-medium">{showShipmentDetailModal.cargoType}</p>
@@ -539,22 +613,38 @@ export default function ShipmentsPage() {
                         <p className="text-sm text-gray-500">Araç Tipi</p>
                         <p className="font-medium">{showShipmentDetailModal.vehicleType}</p>
                       </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Tarih</p>
-                        <p className="font-medium">{showShipmentDetailModal.date}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Durum</p>
-                        <p className="font-medium">
-                          <span className={`px-2 py-1 text-xs leading-5 font-semibold rounded-full ${getStatusColor(showShipmentDetailModal.status)}`}>
-                            {showShipmentDetailModal.status}
-                          </span>
+                    </div>
+
+                    {showShipmentDetailModal.notes && (
+                      <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
+                        <p className="text-sm text-yellow-800">
+                          <span className="font-medium">Notlar: </span>
+                          {showShipmentDetailModal.notes}
                         </p>
                       </div>
-                    </div>
+                    )}
                   </div>
                   
-                  {/* Ücret Bilgileri */}
+                  {/* Sürücü Konum Bilgisi */}
+                  {showShipmentDetailModal.status === 'Taşınıyor' && (
+                    <div className="bg-gray-50 p-4 rounded-lg mt-4">
+                      <div className="flex items-center mb-2">
+                        <FaMapMarkerAlt className="text-orange-500 mr-2" />
+                        <span className="font-medium">Sürücü Konum Bilgisi</span>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {showShipmentDetailModal.driverLocation ? (
+                          <>
+                            <p>Son Konum: {showShipmentDetailModal.driverLocation.latitude}, {showShipmentDetailModal.driverLocation.longitude}</p>
+                            <p>Son Güncelleme: {showShipmentDetailModal.driverLocation.formattedTime}</p>
+                          </>
+                        ) : (
+                          <p className="text-orange-600">Sürücü henüz konum paylaşımı yapmadı.</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="bg-gray-50 p-4 rounded-lg mt-4">
                     <div className="flex items-center mb-2">
                       <FaMoneyBillWave className="text-orange-500 mr-2" />
@@ -573,89 +663,59 @@ export default function ShipmentsPage() {
                   </div>
                 </div>
                 
-                {/* Sağ Kısım - Harita ve Takip */}
+                {/* Sağ Kısım - Harita */}
                 <div>
-                  <h4 className="font-medium text-lg mb-4">Rota Haritası</h4>
-                  <div className="border rounded-lg overflow-hidden mb-4">
+                  <h4 className="font-medium text-lg mb-4">Rota ve Konum Takibi</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg" style={{ height: '400px' }}>
                     {isLoaded ? (
                       <GoogleMap
-                        mapContainerStyle={containerStyle}
-                        center={center}
-                        zoom={7}
+                        mapContainerStyle={{ width: '100%', height: '100%' }}
+                        center={getCoordinatesForCity(showShipmentDetailModal.from)}
+                        zoom={8}
                         onLoad={onLoad}
                         onUnmount={onUnmount}
                       >
-                        {directions ? (
-                          <DirectionsRenderer directions={directions} />
-                        ) : (
-                          <>
-                            <Marker 
-                              position={getCoordinatesForCity(showShipmentDetailModal.from)} 
-                              icon={{
-                                url: "http://maps.google.com/mapfiles/ms/icons/green-dot.png",
-                              }}
-                            />
-                            <Marker 
-                              position={getCoordinatesForCity(showShipmentDetailModal.to)} 
-                              icon={{
-                                url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
-                              }}
-                            />
-                          </>
-                        )}
-                        
-                        {vehiclePosition && (
-                          <Marker 
-                            position={vehiclePosition}
+                        {/* Başlangıç noktası */}
+                        <Marker
+                          position={getCoordinatesForCity(showShipmentDetailModal.from)}
+                          icon={{
+                            url: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
+                            scaledSize: new window.google.maps.Size(40, 40)
+                          }}
+                        />
+
+                        {/* Varış noktası */}
+                        <Marker
+                          position={getCoordinatesForCity(showShipmentDetailModal.to)}
+                          icon={{
+                            url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                            scaledSize: new window.google.maps.Size(40, 40)
+                          }}
+                        />
+
+                        {/* Sürücü konumu */}
+                        {showShipmentDetailModal.driverLocation && (
+                          <Marker
+                            position={{
+                              lat: parseFloat(showShipmentDetailModal.driverLocation.latitude),
+                              lng: parseFloat(showShipmentDetailModal.driverLocation.longitude)
+                            }}
                             icon={{
-                              url: "http://maps.google.com/mapfiles/ms/icons/truck.png",
+                              url: '/truck-icon.png', // Özel kamyon ikonu
                               scaledSize: new window.google.maps.Size(32, 32),
+                              anchor: new window.google.maps.Point(16, 16)
                             }}
                           />
                         )}
+
+                        {/* Rota çizgisi */}
+                        {directions && <DirectionsRenderer directions={directions} />}
                       </GoogleMap>
                     ) : (
-                      <div className="bg-gray-200 h-[350px] flex items-center justify-center">
-                        <div className="text-center">
-                          <FaSpinner className="mx-auto animate-spin text-orange-500 text-2xl mb-2" />
-                          <p className="text-gray-600">Harita yükleniyor...</p>
-                        </div>
+                      <div className="flex items-center justify-center h-full">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
                       </div>
                     )}
-                  </div>
-                  
-                  {showShipmentDetailModal.status === 'Taşınıyor' && (
-                    <div className="bg-blue-50 rounded-lg p-4 mb-4">
-                      <div className="flex items-center mb-2">
-                        <FaTruck className="text-blue-500 mr-2" />
-                        <span className="font-medium text-blue-800">Araç Canlı Takip</span>
-                      </div>
-                      <p className="text-sm text-blue-600 mb-3">
-                        Araç şu anda taşıma sürecinde. Harita üzerinde görünen kamyon ikonu taşıyıcının konumunu göstermektedir.
-                      </p>
-                      <div className="bg-white p-3 rounded-lg shadow-sm">
-                        <div className="flex justify-between text-sm">
-                          <div>
-                            <span className="text-gray-500">Tahmini Varış:</span>
-                            <span className="ml-1 font-medium">2 saat 30 dakika</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-500">Kalan Mesafe:</span>
-                            <span className="ml-1 font-medium">125 km</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="flex justify-center mt-4">
-                    <button 
-                      className="bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded flex items-center"
-                      onClick={() => setShowImagesModal(true)}
-                    >
-                      <FaFileImage className="mr-2" />
-                      Taşıma Görselleri
-                    </button>
                   </div>
                 </div>
               </div>

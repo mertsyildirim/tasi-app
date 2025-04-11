@@ -1,11 +1,74 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { FaSave, FaLock, FaEnvelope, FaBell, FaDesktop, FaDatabase, FaShieldAlt, FaPaintBrush } from 'react-icons/fa'
 import AdminLayout from '../../components/admin/Layout'
 
 export default function SettingsPage() {
   const [selectedTab, setSelectedTab] = useState('general')
+  const [maintenanceConfig, setMaintenanceConfig] = useState({
+    homeEnabled: false,
+    portalEnabled: false
+  })
+  const [tempMaintenanceConfig, setTempMaintenanceConfig] = useState({
+    homeEnabled: false,
+    portalEnabled: false
+  })
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveMessage, setSaveMessage] = useState('')
+
+  // Bakım modu ayarlarını yükle
+  useEffect(() => {
+    const loadMaintenanceConfig = async () => {
+      try {
+        const response = await fetch('/api/settings/maintenance');
+        const data = await response.json();
+        setMaintenanceConfig(data);
+        setTempMaintenanceConfig(data);
+      } catch (error) {
+        console.error('Bakım modu ayarları yüklenirken hata:', error);
+      }
+    };
+
+    loadMaintenanceConfig();
+  }, []);
+
+  // Bakım modu ayarlarını geçici olarak değiştir
+  const handleMaintenanceChange = (type) => {
+    setTempMaintenanceConfig(prev => ({
+      ...prev,
+      [type]: !prev[type]
+    }));
+  };
+
+  // Tüm ayarları kaydet
+  const handleSaveSettings = async () => {
+    try {
+      setIsSaving(true);
+      const response = await fetch('/api/settings/maintenance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(tempMaintenanceConfig),
+      });
+
+      if (response.ok) {
+        setMaintenanceConfig(tempMaintenanceConfig);
+        setSaveMessage('Ayarlar başarıyla kaydedildi');
+        setTimeout(() => setSaveMessage(''), 3000);
+      } else {
+        setSaveMessage('Ayarlar kaydedilirken bir hata oluştu');
+        setTimeout(() => setSaveMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Bakım modu ayarları kaydedilirken hata:', error);
+      setSaveMessage('Ayarlar kaydedilirken bir hata oluştu');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <AdminLayout title="Sistem Ayarları">
@@ -176,28 +239,53 @@ export default function SettingsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Bakım Modu
                 </label>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="maintenance-mode"
-                    className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="maintenance-mode" className="ml-2 block text-sm text-gray-900">
-                    Bakım modunu etkinleştir
-                  </label>
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="maintenance-mode-home"
+                      className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                      checked={tempMaintenanceConfig.homeEnabled}
+                      onChange={() => handleMaintenanceChange('homeEnabled')}
+                      disabled={isSaving}
+                    />
+                    <label htmlFor="maintenance-mode-home" className="ml-2 block text-sm text-gray-900">
+                      Anasayfa bakım modunu etkinleştir (tasiapp.com)
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="maintenance-mode-portal"
+                      className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                      checked={tempMaintenanceConfig.portalEnabled}
+                      onChange={() => handleMaintenanceChange('portalEnabled')}
+                      disabled={isSaving}
+                    />
+                    <label htmlFor="maintenance-mode-portal" className="ml-2 block text-sm text-gray-900">
+                      Portal bakım modunu etkinleştir (/portal/* sayfaları)
+                    </label>
+                  </div>
+                  <p className="mt-2 text-sm text-gray-500">
+                    Not: Admin paneli hiçbir zaman bakım moduna girmez. Anasayfa bakım modu yalnızca ana sayfayı, portal bakım modu ise yalnızca /portal altındaki sayfaları etkiler.
+                  </p>
+                  {saveMessage && (
+                    <p className={`mt-2 text-sm ${saveMessage.includes('hata') ? 'text-red-600' : 'text-green-600'}`}>
+                      {saveMessage}
+                    </p>
+                  )}
                 </div>
-                <p className="mt-1 text-sm text-gray-500">
-                  Bakım modu etkinleştirildiğinde, kullanıcılar siteye erişemez.
-                </p>
               </div>
               
               <div className="mt-8">
                 <button
                   type="button"
                   className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                  onClick={handleSaveSettings}
+                  disabled={isSaving}
                 >
                   <FaSave className="mr-2" />
-                  Ayarları Kaydet
+                  {isSaving ? 'Kaydediliyor...' : 'Ayarları Kaydet'}
                 </button>
               </div>
             </div>

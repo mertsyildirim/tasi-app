@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import PortalLayout from '../../components/portal/Layout';
 import { FaUser, FaEnvelope, FaPhone, FaBuilding, FaMapMarkerAlt, FaEdit, FaSave, FaTimes, FaFileAlt, FaUpload, FaDownload, FaExclamationTriangle, FaCheckCircle, FaTruck, FaMotorcycle, FaBox, FaPallet, FaWarehouse, FaShippingFast, FaMapMarkedAlt, FaCheck, FaTimes as FaClose } from 'react-icons/fa';
 import dynamic from 'next/dynamic';
+import { LoadScript } from '@react-google-maps/api';
 
 // Harita bileşenini dinamik olarak yükle (SSR sorunlarını önlemek için)
 const Map = dynamic(() => import('../../components/Map'), { ssr: false });
@@ -23,6 +24,7 @@ export default function Profile() {
     taxNumber: '',
     taxOffice: '',
     address: '',
+    district: '',
     city: '',
     country: '',
     website: '',
@@ -52,120 +54,695 @@ export default function Profile() {
     delivery: [] // Teslim edilecek adresler
   });
   
-  // İl ve ilçe listeleri (örnek veri)
-  const [cities] = useState([
-    { id: 1, name: 'İstanbul' },
-    { id: 2, name: 'Ankara' },
-    { id: 3, name: 'İzmir' },
-    { id: 4, name: 'Bursa' },
-    { id: 5, name: 'Antalya' },
-    { id: 6, name: 'Adana' },
-    { id: 7, name: 'Konya' },
-    { id: 8, name: 'Gaziantep' },
-    { id: 9, name: 'Şanlıurfa' },
-    { id: 10, name: 'Kocaeli' }
-  ]);
+  // İl ve ilçe listeleri
+  const cities = [
+    { id: 1, name: 'Adana' },
+    { id: 2, name: 'Adıyaman' },
+    { id: 3, name: 'Afyonkarahisar' },
+    { id: 4, name: 'Ağrı' },
+    { id: 5, name: 'Amasya' },
+    { id: 6, name: 'Ankara' },
+    { id: 7, name: 'Antalya' },
+    { id: 8, name: 'Artvin' },
+    { id: 9, name: 'Aydın' },
+    { id: 10, name: 'Balıkesir' },
+    { id: 11, name: 'Bilecik' },
+    { id: 12, name: 'Bingöl' },
+    { id: 13, name: 'Bitlis' },
+    { id: 14, name: 'Bolu' },
+    { id: 15, name: 'Burdur' },
+    { id: 16, name: 'Bursa' },
+    { id: 17, name: 'Çanakkale' },
+    { id: 18, name: 'Çankırı' },
+    { id: 19, name: 'Çorum' },
+    { id: 20, name: 'Denizli' },
+    { id: 21, name: 'Diyarbakır' },
+    { id: 22, name: 'Edirne' },
+    { id: 23, name: 'Elazığ' },
+    { id: 24, name: 'Erzincan' },
+    { id: 25, name: 'Erzurum' },
+    { id: 26, name: 'Eskişehir' },
+    { id: 27, name: 'Gaziantep' },
+    { id: 28, name: 'Giresun' },
+    { id: 29, name: 'Gümüşhane' },
+    { id: 30, name: 'Hakkari' },
+    { id: 31, name: 'Hatay' },
+    { id: 32, name: 'Isparta' },
+    { id: 33, name: 'Mersin' },
+    { id: 34, name: 'İstanbul' },
+    { id: 35, name: 'İzmir' },
+    { id: 36, name: 'Kars' },
+    { id: 37, name: 'Kastamonu' },
+    { id: 38, name: 'Kayseri' },
+    { id: 39, name: 'Kırklareli' },
+    { id: 40, name: 'Kırşehir' },
+    { id: 41, name: 'Kocaeli' },
+    { id: 42, name: 'Konya' },
+    { id: 43, name: 'Kütahya' },
+    { id: 44, name: 'Malatya' },
+    { id: 45, name: 'Manisa' },
+    { id: 46, name: 'Kahramanmaraş' },
+    { id: 47, name: 'Mardin' },
+    { id: 48, name: 'Muğla' },
+    { id: 49, name: 'Muş' },
+    { id: 50, name: 'Nevşehir' },
+    { id: 51, name: 'Niğde' },
+    { id: 52, name: 'Ordu' },
+    { id: 53, name: 'Rize' },
+    { id: 54, name: 'Sakarya' },
+    { id: 55, name: 'Samsun' },
+    { id: 56, name: 'Siirt' },
+    { id: 57, name: 'Sinop' },
+    { id: 58, name: 'Sivas' },
+    { id: 59, name: 'Tekirdağ' },
+    { id: 60, name: 'Tokat' },
+    { id: 61, name: 'Trabzon' },
+    { id: 62, name: 'Tunceli' },
+    { id: 63, name: 'Şanlıurfa' },
+    { id: 64, name: 'Uşak' },
+    { id: 65, name: 'Van' },
+    { id: 66, name: 'Yozgat' },
+    { id: 67, name: 'Zonguldak' },
+    { id: 68, name: 'Aksaray' },
+    { id: 69, name: 'Bayburt' },
+    { id: 70, name: 'Karaman' },
+    { id: 71, name: 'Kırıkkale' },
+    { id: 72, name: 'Batman' },
+    { id: 73, name: 'Şırnak' },
+    { id: 74, name: 'Bartın' },
+    { id: 75, name: 'Ardahan' },
+    { id: 76, name: 'Iğdır' },
+    { id: 77, name: 'Yalova' },
+    { id: 78, name: 'Karabük' },
+    { id: 79, name: 'Kilis' },
+    { id: 80, name: 'Osmaniye' },
+    { id: 81, name: 'Düzce' }
+  ];
   
-  const [districts] = useState({
-    1: [ // İstanbul
-      { id: 101, name: 'Kadıköy' },
-      { id: 102, name: 'Beşiktaş' },
-      { id: 103, name: 'Üsküdar' },
-      { id: 104, name: 'Şişli' },
-      { id: 105, name: 'Beyoğlu' },
-      { id: 106, name: 'Bakırköy' },
-      { id: 107, name: 'Ataşehir' },
-      { id: 108, name: 'Maltepe' },
-      { id: 109, name: 'Pendik' },
-      { id: 110, name: 'Kartal' }
+  const districts = {
+    1: [ // Adana
+      { id: 101, name: 'Seyhan' },
+      { id: 102, name: 'Yüreğir' },
+      { id: 103, name: 'Çukurova' },
+      { id: 104, name: 'Sarıçam' },
+      { id: 105, name: 'Ceyhan' },
+      { id: 106, name: 'Kozan' },
+      { id: 107, name: 'İmamoğlu' },
+      { id: 108, name: 'Karataş' },
+      { id: 109, name: 'Karaisalı' },
+      { id: 110, name: 'Pozantı' }
     ],
-    2: [ // Ankara
-      { id: 201, name: 'Çankaya' },
-      { id: 202, name: 'Keçiören' },
-      { id: 203, name: 'Mamak' },
-      { id: 204, name: 'Etimesgut' },
-      { id: 205, name: 'Sincan' }
+    2: [ // Adıyaman
+      { id: 201, name: 'Merkez' },
+      { id: 202, name: 'Kahta' },
+      { id: 203, name: 'Besni' },
+      { id: 204, name: 'Gölbaşı' },
+      { id: 205, name: 'Gerger' }
     ],
-    3: [ // İzmir
-      { id: 301, name: 'Konak' },
-      { id: 302, name: 'Karşıyaka' },
-      { id: 303, name: 'Bornova' },
-      { id: 304, name: 'Buca' },
-      { id: 305, name: 'Çiğli' }
+    3: [ // Afyonkarahisar
+      { id: 301, name: 'Merkez' },
+      { id: 302, name: 'Sandıklı' },
+      { id: 303, name: 'Dinar' },
+      { id: 304, name: 'Bolvadin' },
+      { id: 305, name: 'Emirdağ' }
     ],
-    4: [ // Bursa
-      { id: 401, name: 'Nilüfer' },
-      { id: 402, name: 'Osmangazi' },
-      { id: 403, name: 'Yıldırım' },
-      { id: 404, name: 'Mudanya' },
-      { id: 405, name: 'Gemlik' }
+    34: [ // İstanbul
+      { id: 3401, name: 'Kadıköy' },
+      { id: 3402, name: 'Beşiktaş' },
+      { id: 3403, name: 'Üsküdar' },
+      { id: 3404, name: 'Şişli' },
+      { id: 3405, name: 'Beyoğlu' },
+      { id: 3406, name: 'Bakırköy' },
+      { id: 3407, name: 'Ataşehir' },
+      { id: 3408, name: 'Maltepe' },
+      { id: 3409, name: 'Pendik' },
+      { id: 3410, name: 'Kartal' },
+      { id: 3411, name: 'Beykoz' },
+      { id: 3412, name: 'Fatih' },
+      { id: 3413, name: 'Eyüp' },
+      { id: 3414, name: 'Gaziosmanpaşa' },
+      { id: 3415, name: 'Kağıthane' },
+      { id: 3416, name: 'Sarıyer' },
+      { id: 3417, name: 'Zeytinburnu' },
+      { id: 3418, name: 'Beylikdüzü' },
+      { id: 3419, name: 'Esenyurt' },
+      { id: 3420, name: 'Başakşehir' }
     ],
-    5: [ // Antalya
-      { id: 501, name: 'Muratpaşa' },
-      { id: 502, name: 'Konyaaltı' },
-      { id: 503, name: 'Kepez' },
-      { id: 504, name: 'Lara' },
-      { id: 505, name: 'Kemer' }
+    6: [ // Ankara
+      { id: 601, name: 'Çankaya' },
+      { id: 602, name: 'Keçiören' },
+      { id: 603, name: 'Yenimahalle' },
+      { id: 604, name: 'Mamak' },
+      { id: 605, name: 'Etimesgut' },
+      { id: 606, name: 'Sincan' },
+      { id: 607, name: 'Altındağ' },
+      { id: 608, name: 'Pursaklar' },
+      { id: 609, name: 'Gölbaşı' },
+      { id: 610, name: 'Polatlı' }
     ],
-    6: [ // Adana
-      { id: 601, name: 'Seyhan' },
-      { id: 602, name: 'Yüreğir' },
-      { id: 603, name: 'Çukurova' },
-      { id: 604, name: 'Sarıçam' },
-      { id: 605, name: 'Karaisalı' }
+    35: [ // İzmir
+      { id: 3501, name: 'Konak' },
+      { id: 3502, name: 'Karşıyaka' },
+      { id: 3503, name: 'Bornova' },
+      { id: 3504, name: 'Buca' },
+      { id: 3505, name: 'Çiğli' },
+      { id: 3506, name: 'Gaziemir' },
+      { id: 3507, name: 'Karabağlar' },
+      { id: 3508, name: 'Bayraklı' },
+      { id: 3509, name: 'Balçova' },
+      { id: 3510, name: 'Narlıdere' }
     ],
-    7: [ // Konya
-      { id: 701, name: 'Selçuklu' },
-      { id: 702, name: 'Meram' },
-      { id: 703, name: 'Karatay' },
-      { id: 704, name: 'Ereğli' },
-      { id: 705, name: 'Akşehir' }
+    16: [ // Bursa
+      { id: 1601, name: 'Osmangazi' },
+      { id: 1602, name: 'Nilüfer' },
+      { id: 1603, name: 'Yıldırım' },
+      { id: 1604, name: 'İnegöl' },
+      { id: 1605, name: 'Gemlik' },
+      { id: 1606, name: 'Mudanya' },
+      { id: 1607, name: 'Gürsu' },
+      { id: 1608, name: 'Kestel' },
+      { id: 1609, name: 'Mustafakemalpaşa' },
+      { id: 1610, name: 'Orhangazi' }
     ],
-    8: [ // Gaziantep
-      { id: 801, name: 'Şahinbey' },
-      { id: 802, name: 'Şehitkamil' },
-      { id: 803, name: 'Nizip' },
-      { id: 804, name: 'İslahiye' },
-      { id: 805, name: 'Araban' }
+    7: [ // Antalya
+      { id: 701, name: 'Muratpaşa' },
+      { id: 702, name: 'Kepez' },
+      { id: 703, name: 'Konyaaltı' },
+      { id: 704, name: 'Alanya' },
+      { id: 705, name: 'Manavgat' },
+      { id: 706, name: 'Serik' },
+      { id: 707, name: 'Aksu' },
+      { id: 708, name: 'Döşemealtı' },
+      { id: 709, name: 'Kumluca' },
+      { id: 710, name: 'Kaş' }
     ],
-    9: [ // Şanlıurfa
-      { id: 901, name: 'Haliliye' },
-      { id: 902, name: 'Eyyübiye' },
-      { id: 903, name: 'Karaköprü' },
-      { id: 904, name: 'Siverek' },
-      { id: 905, name: 'Viranşehir' }
+    41: [ // Kocaeli
+      { id: 4101, name: 'İzmit' },
+      { id: 4102, name: 'Gebze' },
+      { id: 4103, name: 'Darıca' },
+      { id: 4104, name: 'Körfez' },
+      { id: 4105, name: 'Gölcük' },
+      { id: 4106, name: 'Derince' },
+      { id: 4107, name: 'Çayırova' },
+      { id: 4108, name: 'Kartepe' },
+      { id: 4109, name: 'Başiskele' },
+      { id: 4110, name: 'Dilovası' }
     ],
-    10: [ // Kocaeli
-      { id: 1001, name: 'İzmit' },
-      { id: 1002, name: 'Gebze' },
-      { id: 1003, name: 'Darıca' },
-      { id: 1004, name: 'Körfez' },
-      { id: 1005, name: 'Gölcük' }
+    42: [ // Konya
+      { id: 4201, name: 'Selçuklu' },
+      { id: 4202, name: 'Meram' },
+      { id: 4203, name: 'Karatay' },
+      { id: 4204, name: 'Ereğli' },
+      { id: 4205, name: 'Akşehir' },
+      { id: 4206, name: 'Beyşehir' },
+      { id: 4207, name: 'Çumra' },
+      { id: 4208, name: 'Seydişehir' },
+      { id: 4209, name: 'Ilgın' },
+      { id: 4210, name: 'Kulu' }
+    ],
+    27: [ // Gaziantep
+      { id: 2701, name: 'Şahinbey' },
+      { id: 2702, name: 'Şehitkamil' },
+      { id: 2703, name: 'Nizip' },
+      { id: 2704, name: 'İslahiye' },
+      { id: 2705, name: 'Nurdağı' },
+      { id: 2706, name: 'Araban' },
+      { id: 2707, name: 'Oğuzeli' },
+      { id: 2708, name: 'Yavuzeli' },
+      { id: 2709, name: 'Karkamış' }
+    ],
+    20: [ // Denizli
+      { id: 2001, name: 'Pamukkale' },
+      { id: 2002, name: 'Merkezefendi' },
+      { id: 2003, name: 'Çivril' },
+      { id: 2004, name: 'Acıpayam' },
+      { id: 2005, name: 'Tavas' },
+      { id: 2006, name: 'Honaz' },
+      { id: 2007, name: 'Sarayköy' },
+      { id: 2008, name: 'Buldan' },
+      { id: 2009, name: 'Çal' },
+      { id: 2010, name: 'Çardak' }
+    ],
+    38: [ // Kayseri
+      { id: 3801, name: 'Kocasinan' },
+      { id: 3802, name: 'Melikgazi' },
+      { id: 3803, name: 'Talas' },
+      { id: 3804, name: 'Yahyalı' },
+      { id: 3805, name: 'Develi' },
+      { id: 3806, name: 'Bünyan' },
+      { id: 3807, name: 'Pınarbaşı' },
+      { id: 3808, name: 'Yozgat' },
+      { id: 3809, name: 'Sarıoğlan' },
+      { id: 3810, name: 'Hacılar' }
+    ],
+    26: [ // Eskişehir
+      { id: 2601, name: 'Tepebaşı' },
+      { id: 2602, name: 'Odunpazarı' },
+      { id: 2603, name: 'Sivrihisar' },
+      { id: 2604, name: 'Alpu' },
+      { id: 2605, name: 'Beylikova' },
+      { id: 2606, name: 'Çifteler' },
+      { id: 2607, name: 'Günyüzü' },
+      { id: 2608, name: 'Han' },
+      { id: 2609, name: 'İnönü' },
+      { id: 2610, name: 'Mahmudiye' }
+    ],
+    33: [ // Mersin
+      { id: 3301, name: 'Yenişehir' },
+      { id: 3302, name: 'Toroslar' },
+      { id: 3303, name: 'Akdeniz' },
+      { id: 3304, name: 'Mezitli' },
+      { id: 3305, name: 'Tarsus' },
+      { id: 3306, name: 'Erdemli' },
+      { id: 3307, name: 'Silifke' },
+      { id: 3308, name: 'Anamur' },
+      { id: 3309, name: 'Mut' },
+      { id: 3310, name: 'Gülnar' }
+    ],
+    21: [ // Diyarbakır
+      { id: 2101, name: 'Kayapınar' },
+      { id: 2102, name: 'Yenişehir' },
+      { id: 2103, name: 'Bağlar' },
+      { id: 2104, name: 'Sur' },
+      { id: 2105, name: 'Bismil' },
+      { id: 2106, name: 'Çermik' },
+      { id: 2107, name: 'Çınar' },
+      { id: 2108, name: 'Çüngüş' },
+      { id: 2109, name: 'Dicle' },
+      { id: 2110, name: 'Eğil' }
+    ],
+    63: [ // Şanlıurfa
+      { id: 6301, name: 'Haliliye' },
+      { id: 6302, name: 'Eyyübiye' },
+      { id: 6303, name: 'Karaköprü' },
+      { id: 6304, name: 'Siverek' },
+      { id: 6305, name: 'Viranşehir' },
+      { id: 6306, name: 'Suruç' },
+      { id: 6307, name: 'Birecik' },
+      { id: 6308, name: 'Harran' },
+      { id: 6309, name: 'Hilvan' },
+      { id: 6310, name: 'Ceylanpınar' }
+    ],
+    61: [ // Trabzon
+      { id: 6101, name: 'Ortahisar' },
+      { id: 6102, name: 'Akçaabat' },
+      { id: 6103, name: 'Yomra' },
+      { id: 6104, name: 'Arsin' },
+      { id: 6105, name: 'Araklı' },
+      { id: 6106, name: 'Of' },
+      { id: 6107, name: 'Sürmene' },
+      { id: 6108, name: 'Vakfıkebir' },
+      { id: 6109, name: 'Beşikdüzü' },
+      { id: 6110, name: 'Çarşıbaşı' }
+    ],
+    55: [ // Samsun
+      { id: 5501, name: 'İlkadım' },
+      { id: 5502, name: 'Atakum' },
+      { id: 5503, name: 'Canik' },
+      { id: 5504, name: 'Tekkeköy' },
+      { id: 5505, name: 'Bafra' },
+      { id: 5506, name: 'Çarşamba' },
+      { id: 5507, name: 'Havza' },
+      { id: 5508, name: 'Kavak' },
+      { id: 5509, name: 'Ladik' },
+      { id: 5510, name: 'Salıpazarı' }
+    ],
+    54: [ // Sakarya
+      { id: 5401, name: 'Adapazarı' },
+      { id: 5402, name: 'Serdivan' },
+      { id: 5403, name: 'Erenler' },
+      { id: 5404, name: 'Ferizli' },
+      { id: 5405, name: 'Geyve' },
+      { id: 5406, name: 'Hendek' },
+      { id: 5407, name: 'Karapürçek' },
+      { id: 5408, name: 'Karasu' },
+      { id: 5409, name: 'Kaynarca' },
+      { id: 5410, name: 'Kocaali' }
+    ],
+    10: [ // Balıkesir
+      { id: 1001, name: 'Altıeylül' },
+      { id: 1002, name: 'Karesi' },
+      { id: 1003, name: 'Bandırma' },
+      { id: 1004, name: 'Edremit' },
+      { id: 1005, name: 'Gönen' },
+      { id: 1006, name: 'Burhaniye' },
+      { id: 1007, name: 'Dursunbey' },
+      { id: 1008, name: 'Sındırgı' },
+      { id: 1009, name: 'Susurluk' },
+      { id: 1010, name: 'Manyas' }
+    ],
+    9: [ // Aydın
+      { id: 901, name: 'Efeler' },
+      { id: 902, name: 'Nazilli' },
+      { id: 903, name: 'Söke' },
+      { id: 904, name: 'Kuşadası' },
+      { id: 905, name: 'Didim' },
+      { id: 906, name: 'Germencik' },
+      { id: 907, name: 'Bozdoğan' },
+      { id: 908, name: 'Çine' },
+      { id: 909, name: 'Köşk' },
+      { id: 910, name: 'Sultanhisar' }
+    ],
+    48: [ // Muğla
+      { id: 4801, name: 'Menteşe' },
+      { id: 4802, name: 'Bodrum' },
+      { id: 4803, name: 'Fethiye' },
+      { id: 4804, name: 'Marmaris' },
+      { id: 4805, name: 'Milas' },
+      { id: 4806, name: 'Dalaman' },
+      { id: 4807, name: 'Köyceğiz' },
+      { id: 4808, name: 'Ortaca' },
+      { id: 4809, name: 'Ula' },
+      { id: 4810, name: 'Yatağan' }
+    ],
+    32: [ // Isparta
+      { id: 3201, name: 'Merkez' },
+      { id: 3202, name: 'Eğirdir' },
+      { id: 3203, name: 'Yalvaç' },
+      { id: 3204, name: 'Sütçüler' },
+      { id: 3205, name: 'Gelendost' },
+      { id: 3206, name: 'Keçiborlu' },
+      { id: 3207, name: 'Senirkent' },
+      { id: 3208, name: 'Uluborlu' },
+      { id: 3209, name: 'Aksu' },
+      { id: 3210, name: 'Gönen' }
+    ],
+    31: [ // Hatay
+      { id: 3101, name: 'Antakya' },
+      { id: 3102, name: 'İskenderun' },
+      { id: 3103, name: 'Defne' },
+      { id: 3104, name: 'Dörtyol' },
+      { id: 3105, name: 'Reyhanlı' },
+      { id: 3106, name: 'Samandağ' },
+      { id: 3107, name: 'Kırıkhan' },
+      { id: 3108, name: 'Payas' },
+      { id: 3109, name: 'Erzin' },
+      { id: 3110, name: 'Belen' }
+    ],
+    25: [ // Erzurum
+      { id: 2501, name: 'Yakutiye' },
+      { id: 2502, name: 'Palandöken' },
+      { id: 2503, name: 'Aziziye' },
+      { id: 2504, name: 'Horasan' },
+      { id: 2505, name: 'Oltu' },
+      { id: 2506, name: 'Pasinler' },
+      { id: 2507, name: 'Karaçoban' },
+      { id: 2508, name: 'Hınıs' },
+      { id: 2509, name: 'Tortum' },
+      { id: 2510, name: 'Narman' }
+    ],
+    24: [ // Erzincan
+      { id: 2401, name: 'Merkez' },
+      { id: 2402, name: 'Tercan' },
+      { id: 2403, name: 'Üzümlü' },
+      { id: 2404, name: 'Kemah' },
+      { id: 2405, name: 'Kemaliye' },
+      { id: 2406, name: 'İliç' },
+      { id: 2407, name: 'Refahiye' },
+      { id: 2408, name: 'Çayırlı' },
+      { id: 2409, name: 'Otlukbeli' }
+    ],
+    23: [ // Elazığ
+      { id: 2301, name: 'Merkez' },
+      { id: 2302, name: 'Kovancılar' },
+      { id: 2303, name: 'Baskil' },
+      { id: 2304, name: 'Karakoçan' },
+      { id: 2305, name: 'Palu' },
+      { id: 2306, name: 'Arıcak' },
+      { id: 2307, name: 'Maden' },
+      { id: 2308, name: 'Sivrice' },
+      { id: 2309, name: 'Alacakaya' }
+    ],
+    22: [ // Edirne
+      { id: 2201, name: 'Merkez' },
+      { id: 2202, name: 'Keşan' },
+      { id: 2203, name: 'Uzunköprü' },
+      { id: 2204, name: 'Havsa' },
+      { id: 2205, name: 'İpsala' },
+      { id: 2206, name: 'Enez' },
+      { id: 2207, name: 'Lalapaşa' },
+      { id: 2208, name: 'Meriç' },
+      { id: 2209, name: 'Süloğlu' }
+    ],
+    19: [ // Çorum
+      { id: 1901, name: 'Merkez' },
+      { id: 1902, name: 'Sungurlu' },
+      { id: 1903, name: 'İskilip' },
+      { id: 1904, name: 'Osmancık' },
+      { id: 1905, name: 'Alaca' },
+      { id: 1906, name: 'Mecitözü' },
+      { id: 1907, name: 'Kargı' },
+      { id: 1908, name: 'Bayat' },
+      { id: 1909, name: 'Boğazkale' }
+    ],
+    18: [ // Çankırı
+      { id: 1801, name: 'Merkez' },
+      { id: 1802, name: 'Orta' },
+      { id: 1803, name: 'Çerkeş' },
+      { id: 1804, name: 'Ilgaz' },
+      { id: 1805, name: 'Kurşunlu' },
+      { id: 1806, name: 'Eldivan' },
+      { id: 1807, name: 'Atkaracalar' },
+      { id: 1808, name: 'Kızılırmak' },
+      { id: 1809, name: 'Bayramören' }
+    ],
+    17: [ // Çanakkale
+      { id: 1701, name: 'Merkez' },
+      { id: 1702, name: 'Çan' },
+      { id: 1703, name: 'Biga' },
+      { id: 1704, name: 'Gelibolu' },
+      { id: 1705, name: 'Ayvacık' },
+      { id: 1706, name: 'Bayramiç' },
+      { id: 1707, name: 'Biga' },
+      { id: 1708, name: 'Çan' },
+      { id: 1709, name: 'Eceabat' }
+    ],
+    15: [ // Burdur
+      { id: 1501, name: 'Merkez' },
+      { id: 1502, name: 'Bucak' },
+      { id: 1503, name: 'Gölhisar' },
+      { id: 1504, name: 'Tefenni' },
+      { id: 1505, name: 'Ağlasun' },
+      { id: 1506, name: 'Karamanlı' },
+      { id: 1507, name: 'Kemer' },
+      { id: 1508, name: 'Altınyayla' },
+      { id: 1509, name: 'Çavdır' }
+    ],
+    14: [ // Bolu
+      { id: 1401, name: 'Merkez' },
+      { id: 1402, name: 'Gerede' },
+      { id: 1403, name: 'Mengen' },
+      { id: 1404, name: 'Mudurnu' },
+      { id: 1405, name: 'Dörtdivan' },
+      { id: 1406, name: 'Yeniçağa' },
+      { id: 1407, name: 'Kıbrıscık' },
+      { id: 1408, name: 'Seben' },
+      { id: 1409, name: 'Göynük' }
+    ],
+    13: [ // Bitlis
+      { id: 1301, name: 'Merkez' },
+      { id: 1302, name: 'Tatvan' },
+      { id: 1303, name: 'Ahlat' },
+      { id: 1304, name: 'Güroymak' },
+      { id: 1305, name: 'Mutki' },
+      { id: 1306, name: 'Hizan' },
+      { id: 1307, name: 'Adilcevaz' }
+    ],
+    12: [ // Bingöl
+      { id: 1201, name: 'Merkez' },
+      { id: 1202, name: 'Genç' },
+      { id: 1203, name: 'Karlıova' },
+      { id: 1204, name: 'Solhan' },
+      { id: 1205, name: 'Adaklı' },
+      { id: 1206, name: 'Kiğı' },
+      { id: 1207, name: 'Yedisu' },
+      { id: 1208, name: 'Yayladere' }
+    ],
+    11: [ // Bilecik
+      { id: 1101, name: 'Merkez' },
+      { id: 1102, name: 'Bozüyük' },
+      { id: 1103, name: 'Söğüt' },
+      { id: 1104, name: 'Gölpazarı' },
+      { id: 1105, name: 'Osmaneli' },
+      { id: 1106, name: 'Pazaryeri' },
+      { id: 1107, name: 'İnhisar' }
+    ],
+    8: [ // Artvin
+      { id: 801, name: 'Merkez' },
+      { id: 802, name: 'Hopa' },
+      { id: 803, name: 'Arhavi' },
+      { id: 804, name: 'Borçka' },
+      { id: 805, name: 'Şavşat' },
+      { id: 806, name: 'Yusufeli' },
+      { id: 807, name: 'Kemalpaşa' },
+      { id: 808, name: 'Ardanuç' }
+    ],
+    5: [ // Amasya
+      { id: 501, name: 'Merkez' },
+      { id: 502, name: 'Merzifon' },
+      { id: 503, name: 'Suluova' },
+      { id: 504, name: 'Taşova' },
+      { id: 505, name: 'Göynücek' },
+      { id: 506, name: 'Gümüşhacıköy' },
+      { id: 507, name: 'Hamamözü' }
+    ],
+    4: [ // Ağrı
+      { id: 401, name: 'Merkez' },
+      { id: 402, name: 'Doğubayazıt' },
+      { id: 403, name: 'Diyadin' },
+      { id: 404, name: 'Eleşkirt' },
+      { id: 405, name: 'Patnos' },
+      { id: 406, name: 'Tutak' },
+      { id: 407, name: 'Taşlıçay' },
+      { id: 408, name: 'Hamur' }
     ]
-  });
+  };
   
   // Seçili il ve ilçeler
   const [selectedCity, setSelectedCity] = useState('');
   const [selectedDistricts, setSelectedDistricts] = useState([]);
   const [selectedCityDelivery, setSelectedCityDelivery] = useState('');
   const [selectedDistrictsDelivery, setSelectedDistrictsDelivery] = useState([]);
-  const [showMap, setShowMap] = useState(false);
-  
-  // Harita için örnek veri
+  // showMap state'ini kaldırıyorum
   const [mapData] = useState({
     pickupAreas: [
-      { id: 1, name: 'İstanbul - Kadıköy', color: '#3B82F6', coordinates: { lat: 40.9909, lng: 29.0307 } },
-      { id: 2, name: 'İstanbul - Beşiktaş', color: '#3B82F6', coordinates: { lat: 41.0422, lng: 29.0083 } },
-      { id: 3, name: 'Ankara - Çankaya', color: '#3B82F6', coordinates: { lat: 39.9208, lng: 32.8541 } },
-      { id: 4, name: 'İzmir - Konak', color: '#3B82F6', coordinates: { lat: 38.4192, lng: 27.1287 } }
+      { id: 1, name: 'İstanbul - Kadıköy', color: '#10B981', coordinates: { lat: 40.9909, lng: 29.0307 } },
+      { id: 2, name: 'İstanbul - Beşiktaş', color: '#10B981', coordinates: { lat: 41.0422, lng: 29.0083 } },
+      { id: 3, name: 'Ankara - Çankaya', color: '#10B981', coordinates: { lat: 39.9208, lng: 32.8541 } },
+      { id: 4, name: 'İzmir - Konak', color: '#10B981', coordinates: { lat: 38.4192, lng: 27.1287 } }
     ],
     deliveryAreas: [
-      { id: 5, name: 'İstanbul - Üsküdar', color: '#10B981', coordinates: { lat: 41.0235, lng: 29.0145 } },
-      { id: 6, name: 'İstanbul - Şişli', color: '#10B981', coordinates: { lat: 41.0602, lng: 28.9877 } },
-      { id: 7, name: 'Ankara - Keçiören', color: '#10B981', coordinates: { lat: 39.9651, lng: 32.8639 } },
-      { id: 8, name: 'İzmir - Karşıyaka', color: '#10B981', coordinates: { lat: 38.4589, lng: 27.1386 } }
+      { id: 5, name: 'İstanbul - Üsküdar', color: '#3B82F6', coordinates: { lat: 41.0235, lng: 29.0145 } },
+      { id: 6, name: 'İstanbul - Şişli', color: '#3B82F6', coordinates: { lat: 41.0602, lng: 28.9877 } },
+      { id: 7, name: 'Ankara - Keçiören', color: '#3B82F6', coordinates: { lat: 39.9651, lng: 32.8639 } },
+      { id: 8, name: 'İzmir - Karşıyaka', color: '#3B82F6', coordinates: { lat: 38.4589, lng: 27.1386 } }
     ]
   });
+
+  const [citySearch, setCitySearch] = useState('');
+  const [districtSearch, setDistrictSearch] = useState('');
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
+  const [showDistrictDropdown, setShowDistrictDropdown] = useState(false);
+  const [selectedCityIndex, setSelectedCityIndex] = useState(-1);
+  const [selectedDistrictIndex, setSelectedDistrictIndex] = useState(-1);
+  const cityDropdownRef = useRef(null);
+  const districtDropdownRef = useRef(null);
+
+  const filteredCities = cities.filter(city => {
+    const searchTerm = citySearch.toLowerCase()
+      .replace(/i/g, 'i')
+      .replace(/ı/g, 'i')
+      .replace(/İ/g, 'i')
+      .replace(/I/g, 'i')
+      .replace(/ğ/g, 'g')
+      .replace(/ü/g, 'u')
+      .replace(/ş/g, 's')
+      .replace(/ö/g, 'o')
+      .replace(/ç/g, 'c');
+    
+    const cityName = city.name.toLowerCase()
+      .replace(/i/g, 'i')
+      .replace(/ı/g, 'i')
+      .replace(/İ/g, 'i')
+      .replace(/I/g, 'i')
+      .replace(/ğ/g, 'g')
+      .replace(/ü/g, 'u')
+      .replace(/ş/g, 's')
+      .replace(/ö/g, 'o')
+      .replace(/ç/g, 'c');
+    
+    return cityName.includes(searchTerm);
+  });
+
+  const filteredDistricts = formData.city ? districts[formData.city]?.filter(district => {
+    const searchTerm = districtSearch.toLowerCase()
+      .replace(/i/g, 'i')
+      .replace(/ı/g, 'i')
+      .replace(/İ/g, 'i')
+      .replace(/I/g, 'i')
+      .replace(/ğ/g, 'g')
+      .replace(/ü/g, 'u')
+      .replace(/ş/g, 's')
+      .replace(/ö/g, 'o')
+      .replace(/ç/g, 'c');
+    
+    const districtName = district.name.toLowerCase()
+      .replace(/i/g, 'i')
+      .replace(/ı/g, 'i')
+      .replace(/İ/g, 'i')
+      .replace(/I/g, 'i')
+      .replace(/ğ/g, 'g')
+      .replace(/ü/g, 'u')
+      .replace(/ş/g, 's')
+      .replace(/ö/g, 'o')
+      .replace(/ç/g, 'c');
+    
+    return districtName.includes(searchTerm);
+  }) : [];
+
+  const handleCityKeyDown = (e) => {
+    if (!showCityDropdown) return;
+    
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedCityIndex(prev => 
+        prev < filteredCities.length - 1 ? prev + 1 : prev
+      );
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedCityIndex(prev => prev > 0 ? prev - 1 : prev);
+    } else if (e.key === 'Enter' && selectedCityIndex >= 0) {
+      e.preventDefault();
+      const selectedCity = filteredCities[selectedCityIndex];
+      handleInputChange({ target: { name: 'city', value: selectedCity.id } });
+      setCitySearch(selectedCity.name);
+      setShowCityDropdown(false);
+      setSelectedCityIndex(-1);
+    } else if (e.key === 'Escape') {
+      setShowCityDropdown(false);
+      setSelectedCityIndex(-1);
+    }
+  };
+
+  const handleDistrictKeyDown = (e) => {
+    if (!showDistrictDropdown) return;
+    
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedDistrictIndex(prev => 
+        prev < filteredDistricts.length - 1 ? prev + 1 : prev
+      );
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedDistrictIndex(prev => prev > 0 ? prev - 1 : prev);
+    } else if (e.key === 'Enter' && selectedDistrictIndex >= 0) {
+      e.preventDefault();
+      const selectedDistrict = filteredDistricts[selectedDistrictIndex];
+      handleInputChange({ target: { name: 'district', value: selectedDistrict.id } });
+      setDistrictSearch(selectedDistrict.name);
+      setShowDistrictDropdown(false);
+      setSelectedDistrictIndex(-1);
+    } else if (e.key === 'Escape') {
+      setShowDistrictDropdown(false);
+      setSelectedDistrictIndex(-1);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (cityDropdownRef.current && !cityDropdownRef.current.contains(event.target)) {
+        setShowCityDropdown(false);
+      }
+      if (districtDropdownRef.current && !districtDropdownRef.current.contains(event.target)) {
+        setShowDistrictDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // İl seçildiğinde ilçeleri güncelle
   const handleCityChange = (e) => {
@@ -288,7 +865,6 @@ export default function Profile() {
   const saveServiceAreas = () => {
     // Burada API'ye hizmet bölgelerini kaydetme isteği yapılacak
     console.log('Hizmet bölgeleri kaydediliyor:', serviceAreas);
-    setShowMap(true);
     setIsEditingServiceAreas(false);
   };
 
@@ -588,7 +1164,6 @@ export default function Profile() {
 
             {/* Profil Formu */}
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Firma Adı */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -609,22 +1184,119 @@ export default function Profile() {
                   </div>
                 </div>
 
-                {/* Vergi Numarası */}
+              {/* Adres */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Vergi Numarası
+                  Adres
                   </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <FaMapMarkerAlt className="h-5 w-5 text-gray-400" />
+                  </div>
                   <input
                     type="text"
-                    name="taxNumber"
-                    value={formData.taxNumber}
+                    name="address"
+                    value={formData.address}
                     onChange={handleInputChange}
                     disabled={!isEditing}
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
                   />
                 </div>
+                </div>
 
-                {/* Vergi Dairesi */}
+              {/* İlçe ve İl */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    İlçe
+                  </label>
+                  <div className="relative" ref={districtDropdownRef}>
+                  <input
+                    type="text"
+                      value={districtSearch}
+                      onChange={(e) => {
+                        setDistrictSearch(e.target.value);
+                        setShowDistrictDropdown(true);
+                        setSelectedDistrictIndex(-1);
+                      }}
+                      onFocus={() => setShowDistrictDropdown(true)}
+                      onKeyDown={handleDistrictKeyDown}
+                      placeholder="İlçe Ara..."
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                      disabled={!isEditing || !formData.city}
+                    />
+                    {showDistrictDropdown && isEditing && formData.city && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {filteredDistricts.map((district, index) => (
+                          <div
+                            key={district.id}
+                            className={`px-3 py-2 cursor-pointer ${
+                              index === selectedDistrictIndex 
+                                ? 'bg-blue-100 text-blue-800' 
+                                : 'hover:bg-gray-100'
+                            }`}
+                            onClick={() => {
+                              handleInputChange({ target: { name: 'district', value: district.id } });
+                              setDistrictSearch(district.name);
+                              setShowDistrictDropdown(false);
+                              setSelectedDistrictIndex(-1);
+                            }}
+                          >
+                            {district.name}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    İl
+                  </label>
+                  <div className="relative" ref={cityDropdownRef}>
+                    <input
+                      type="text"
+                      value={citySearch}
+                      onChange={(e) => {
+                        setCitySearch(e.target.value);
+                        setShowCityDropdown(true);
+                        setSelectedCityIndex(-1);
+                      }}
+                      onFocus={() => setShowCityDropdown(true)}
+                      onKeyDown={handleCityKeyDown}
+                      placeholder="İl Ara..."
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    disabled={!isEditing}
+                    />
+                    {showCityDropdown && isEditing && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {filteredCities.map((city, index) => (
+                          <div
+                            key={city.id}
+                            className={`px-3 py-2 cursor-pointer ${
+                              index === selectedCityIndex 
+                                ? 'bg-blue-100 text-blue-800' 
+                                : 'hover:bg-gray-100'
+                            }`}
+                            onClick={() => {
+                              handleInputChange({ target: { name: 'city', value: city.id } });
+                              setCitySearch(city.name);
+                              setShowCityDropdown(false);
+                              setSelectedCityIndex(-1);
+                              setDistrictSearch('');
+                            }}
+                          >
+                            {city.name}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                </div>
+
+              {/* Vergi Dairesi ve Vergi Numarası */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Vergi Dairesi
@@ -638,23 +1310,23 @@ export default function Profile() {
                     className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
                   />
                 </div>
-
-                {/* Web Sitesi */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Web Sitesi
+                    Vergi Numarası
                   </label>
-                  <input
-                    type="text"
-                    name="website"
-                    value={formData.website}
-                    onChange={handleInputChange}
-                    disabled={!isEditing}
+                    <input
+                      type="text"
+                    name="taxNumber"
+                    value={formData.taxNumber}
+                      onChange={handleInputChange}
+                      disabled={!isEditing}
                     className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-                  />
+                    />
+                  </div>
                 </div>
 
-                {/* Yetkili Kişi */}
+              {/* Yetkili Kişi ve Cep Telefon */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Yetkili Kişi
@@ -673,35 +1345,16 @@ export default function Profile() {
                     />
                   </div>
                 </div>
-
-                {/* E-posta */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    E-posta
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FaEnvelope className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      disabled={!isEditing}
-                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Telefon */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Telefon
+                    Cep Telefon
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <FaPhone className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <div className="absolute inset-y-0 left-5 pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-500">+90</span>
                     </div>
                     <input
                       type="tel"
@@ -709,24 +1362,27 @@ export default function Profile() {
                       value={formData.phone}
                       onChange={handleInputChange}
                       disabled={!isEditing}
-                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+                      placeholder="5XX XXX XX XX"
+                      maxLength="10"
+                      className="block w-full pl-16 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
                     />
+                  </div>
                   </div>
                 </div>
 
-                {/* Adres */}
-                <div className="md:col-span-2">
+              {/* E-posta */}
+              <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Adres
+                  E-posta
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FaMapMarkerAlt className="h-5 w-5 text-gray-400" />
+                    <FaEnvelope className="h-5 w-5 text-gray-400" />
                     </div>
                     <input
-                      type="text"
-                      name="address"
-                      value={formData.address}
+                    type="email"
+                    name="email"
+                    value={formData.email}
                       onChange={handleInputChange}
                       disabled={!isEditing}
                       className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
@@ -734,38 +1390,8 @@ export default function Profile() {
                   </div>
                 </div>
 
-                {/* Şehir */}
+              {/* Firma Açıklaması */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Şehir
-                  </label>
-                  <input
-                    type="text"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    disabled={!isEditing}
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-                  />
-                </div>
-
-                {/* Ülke */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Ülke
-                  </label>
-                  <input
-                    type="text"
-                    name="country"
-                    value={formData.country}
-                    onChange={handleInputChange}
-                    disabled={!isEditing}
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-                  />
-                </div>
-
-                {/* Firma Açıklaması */}
-                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Firma Açıklaması
                   </label>
@@ -774,10 +1400,9 @@ export default function Profile() {
                     value={formData.description}
                     onChange={handleInputChange}
                     disabled={!isEditing}
-                    rows={4}
+                  rows="4"
                     className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
                   />
-                </div>
               </div>
 
               {/* Kaydet Butonu */}
@@ -806,27 +1431,27 @@ export default function Profile() {
 
             <div className="p-6">
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-full divide-y divide-gray-300">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b-2 border-gray-300">
                         Belge Adı
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b-2 border-gray-300">
                         Durum
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b-2 border-gray-300">
                         Yükleme Tarihi
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b-2 border-gray-300">
                         Geçerlilik Tarihi
                       </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider border-b-2 border-gray-300">
                         İşlemler
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-gray-300">
                     {documents.map((document) => (
                       <tr key={document.id} className={`${isDocumentExpired(document) ? 'bg-yellow-50' : ''}`}>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -921,7 +1546,7 @@ export default function Profile() {
                       key={type.id} 
                       className={`p-4 border rounded-lg cursor-pointer transition-colors ${
                         isSelected 
-                          ? 'border-blue-500 bg-blue-50 hover:bg-blue-100' 
+                          ? 'border-orange-500 bg-orange-50 hover:bg-orange-100' 
                           : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
                       } ${!isEditingTransportTypes && 'cursor-default'}`}
                       onClick={() => isEditingTransportTypes && toggleTransportType(type.id)}
@@ -929,14 +1554,14 @@ export default function Profile() {
                       <div className="flex items-center">
                         <div className={`p-2 rounded-full ${
                           isSelected 
-                            ? 'bg-blue-100 text-blue-600' 
+                            ? 'bg-orange-100 text-orange-600' 
                             : 'bg-gray-100 text-gray-400'
                         }`}>
                           <Icon className="h-5 w-5" />
                         </div>
                         <h3 className={`ml-3 text-sm font-medium ${
                           isSelected 
-                            ? 'text-blue-700' 
+                            ? 'text-orange-700' 
                             : 'text-gray-500'
                         }`}>
                           {type.name}
@@ -946,7 +1571,7 @@ export default function Profile() {
                         {type.description}
                       </p>
                       {isSelected && (
-                        <div className="mt-2 flex items-center text-xs text-blue-600">
+                        <div className="mt-2 flex items-center text-xs text-orange-600">
                           <FaCheckCircle className="h-3 w-3 mr-1" />
                           <span>Bu hizmeti sunuyorsunuz</span>
                         </div>
@@ -971,7 +1596,7 @@ export default function Profile() {
                 {isEditingServiceAreas ? (
                   <button
                     onClick={saveServiceAreas}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
                   >
                     <FaSave />
                     <span>Kaydet</span>
@@ -989,6 +1614,29 @@ export default function Profile() {
             </div>
 
             <div className="p-6">
+              {/* Harita Görünümü */}
+              <div className="mb-8">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Hizmet Bölgeleri Haritası</h3>
+                <div className="h-96 border border-gray-300 rounded-lg overflow-hidden">
+                  <LoadScript googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}>
+                    <Map 
+                      pickupAreas={mapData.pickupAreas}
+                      deliveryAreas={mapData.deliveryAreas}
+                    />
+                  </LoadScript>
+                </div>
+                <div className="mt-4 flex items-center justify-center space-x-6">
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 bg-green-500 rounded-full mr-2"></div>
+                    <span className="text-sm text-gray-700">Alabileceğiniz Adresler</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 bg-blue-500 rounded-full mr-2"></div>
+                    <span className="text-sm text-gray-700">Teslim Edebileceğiniz Adresler</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Alınacak Adresler */}
               <div className="mb-8">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Alabileceğiniz Adresler</h3>
@@ -998,12 +1646,12 @@ export default function Profile() {
                   <div className="mb-4">
                     <div className="flex flex-wrap gap-2">
                       {serviceAreas.pickup.map(area => (
-                        <div key={area.id} className="flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                        <div key={area.id} className="flex items-center bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
                           <span>{area.city} - {area.districts.join(', ')}</span>
                           {isEditingServiceAreas && (
                             <button 
                               onClick={() => removeServiceArea('pickup', area.id)}
-                              className="ml-2 text-blue-600 hover:text-blue-800"
+                              className="ml-2 text-green-600 hover:text-green-800"
                             >
                               <FaClose className="h-3 w-3" />
                             </button>
@@ -1026,7 +1674,7 @@ export default function Profile() {
                         <select
                           value={selectedCity}
                           onChange={handleCityChange}
-                          className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                          className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500"
                         >
                           <option value="">İl Seçin</option>
                           {cities.map(city => (
@@ -1043,7 +1691,7 @@ export default function Profile() {
                           <div className="flex items-center mb-2">
                             <button
                               onClick={toggleAllDistricts}
-                              className="text-xs text-blue-600 hover:text-blue-800"
+                              className="text-xs text-orange-600 hover:text-orange-800"
                             >
                               {selectedDistricts.length === districts[selectedCity].length ? 'Tümünü Kaldır' : 'Tümünü Seç'}
                             </button>
@@ -1056,7 +1704,7 @@ export default function Profile() {
                                   id={`district-${district.id}`}
                                   checked={selectedDistricts.includes(district.id)}
                                   onChange={() => toggleDistrict(district.id)}
-                                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                  className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
                                 />
                                 <label htmlFor={`district-${district.id}`} className="ml-2 block text-sm text-gray-700">
                                   {district.name}
@@ -1075,7 +1723,7 @@ export default function Profile() {
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
                           !selectedCity || selectedDistricts.length === 0
                             ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                            : 'bg-orange-600 text-white hover:bg-orange-700'
                         }`}
                       >
                         <FaCheck />
@@ -1095,12 +1743,12 @@ export default function Profile() {
                   <div className="mb-4">
                     <div className="flex flex-wrap gap-2">
                       {serviceAreas.delivery.map(area => (
-                        <div key={area.id} className="flex items-center bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                        <div key={area.id} className="flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
                           <span>{area.city} - {area.districts.join(', ')}</span>
                           {isEditingServiceAreas && (
                             <button 
                               onClick={() => removeServiceArea('delivery', area.id)}
-                              className="ml-2 text-green-600 hover:text-green-800"
+                              className="ml-2 text-blue-600 hover:text-blue-800"
                             >
                               <FaClose className="h-3 w-3" />
                             </button>
@@ -1123,7 +1771,7 @@ export default function Profile() {
                         <select
                           value={selectedCityDelivery}
                           onChange={handleCityDeliveryChange}
-                          className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                          className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500"
                         >
                           <option value="">İl Seçin</option>
                           {cities.map(city => (
@@ -1140,7 +1788,7 @@ export default function Profile() {
                           <div className="flex items-center mb-2">
                             <button
                               onClick={toggleAllDistrictsDelivery}
-                              className="text-xs text-blue-600 hover:text-blue-800"
+                              className="text-xs text-orange-600 hover:text-orange-800"
                             >
                               {selectedDistrictsDelivery.length === districts[selectedCityDelivery].length ? 'Tümünü Kaldır' : 'Tümünü Seç'}
                             </button>
@@ -1153,7 +1801,7 @@ export default function Profile() {
                                   id={`district-delivery-${district.id}`}
                                   checked={selectedDistrictsDelivery.includes(district.id)}
                                   onChange={() => toggleDistrictDelivery(district.id)}
-                                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                                  className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
                                 />
                                 <label htmlFor={`district-delivery-${district.id}`} className="ml-2 block text-sm text-gray-700">
                                   {district.name}
@@ -1172,7 +1820,7 @@ export default function Profile() {
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
                           !selectedCityDelivery || selectedDistrictsDelivery.length === 0
                             ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            : 'bg-green-600 text-white hover:bg-green-700'
+                            : 'bg-orange-600 text-white hover:bg-orange-700'
                         }`}
                       >
                         <FaCheck />
@@ -1182,32 +1830,26 @@ export default function Profile() {
                   </div>
                 )}
               </div>
-              
-              {/* Harita Görünümü */}
-              {showMap && (
-                <div className="mt-8">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Hizmet Bölgeleri Haritası</h3>
-                  <div className="h-96 border border-gray-300 rounded-lg overflow-hidden">
-                    <Map 
-                      pickupAreas={mapData.pickupAreas}
-                      deliveryAreas={mapData.deliveryAreas}
-                    />
                   </div>
-                  <div className="mt-4 flex items-center justify-center space-x-6">
-                    <div className="flex items-center">
-                      <div className="w-4 h-4 bg-blue-500 rounded-full mr-2"></div>
-                      <span className="text-sm text-gray-700">Alınacak Adresler</span>
                     </div>
+        )}
+      </div>
+      <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
+        <div className="flex-shrink-0 group block">
                     <div className="flex items-center">
-                      <div className="w-4 h-4 bg-green-500 rounded-full mr-2"></div>
-                      <span className="text-sm text-gray-700">Teslim Edilecek Adresler</span>
+            <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-orange-100">
+              <span className="text-sm font-medium leading-none text-orange-700">
+                {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+              </span>
                     </div>
-                  </div>
-                </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-700">{user.companyName}</p>
+              {user.name !== user.companyName && (
+                <p className="text-xs font-medium text-gray-500">{user.name}</p>
               )}
             </div>
           </div>
-        )}
+        </div>
       </div>
     </PortalLayout>
   );

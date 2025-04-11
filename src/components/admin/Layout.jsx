@@ -8,10 +8,10 @@ import {
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 
-export default function AdminLayout({ children, title, isBlurred }) {
+export default function AdminLayout({ children, title }) {
   const [isMobile, setIsMobile] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [currentTime, setCurrentTime] = useState(new Date())
+  const [currentTime, setCurrentTime] = useState(null) // Başlangıçta null
   const [showNotifications, setShowNotifications] = useState(false)
   const [showAllNotifications, setShowAllNotifications] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
@@ -87,6 +87,7 @@ export default function AdminLayout({ children, title, isBlurred }) {
     { id: 'dashboard', name: 'Dashboard', icon: <FaChartLine />, path: '/admin/dashboard' },
     { id: 'carriers', name: 'Taşıyıcılar', icon: <FaTruck />, path: '/admin/carriers' },
     { id: 'drivers', name: 'Sürücüler', icon: <FaIdCard />, path: '/admin/drivers' },
+    { id: 'vehicles', name: 'Araçlar', icon: <FaTruck />, path: '/admin/vehicles' },
     { id: 'customers', name: 'Müşteriler', icon: <FaUser />, path: '/admin/customers' },
     { id: 'requests', name: 'Talepler', icon: <FaClipboardList />, path: '/admin/requests' },
     { id: 'shipments', name: 'Taşımalar', icon: <FaShoppingBag />, path: '/admin/shipments' },
@@ -94,55 +95,55 @@ export default function AdminLayout({ children, title, isBlurred }) {
     { id: 'settings', name: 'Ayarlar', icon: <FaCog />, path: '/admin/settings' },
   ]
 
-  // Örnek notifikasyonlar - genişletilmiş versiyon
+  // Örnek bildirimler
   const notifications = [
     { 
       id: 1, 
-      text: 'Yeni taşıyıcı başvurusu', 
-      time: '5 dk önce', 
-      icon: <FaTruck className="text-orange-500" />,
+      text: 'Yeni taşıyıcı kaydı: ABC Lojistik', 
+      time: '5 dakika önce', 
+      icon: <FaTruck className="text-blue-500" />,
       detailUrl: '/admin/carriers',
-      description: 'Ahmet Yıldız isimli taşıyıcı sisteme kayıt olmak için başvuru yaptı. Lütfen başvuruyu inceleyip onaylayın.'
+      description: 'ABC Lojistik firması sisteme kaydoldu. Onay bekliyor.'
     },
     { 
       id: 2, 
-      text: 'Ödeme onaylandı: #5142', 
-      time: '1 saat önce', 
-      icon: <FaCreditCard className="text-green-500" />,
+      text: 'Yeni ödeme alındı: ₺12,500', 
+      time: '15 dakika önce', 
+      icon: <FaFileInvoiceDollar className="text-green-500" />,
       detailUrl: '/admin/payments',
-      description: '#5142 numaralı taşıma ödemesi başarıyla tamamlandı. Toplam tutar: 450₺'
+      description: 'XYZ firmasından yeni bir ödeme alındı.'
     },
     { 
       id: 3, 
-      text: 'Yeni mesaj: Mehmet Kaya', 
-      time: '3 saat önce', 
-      icon: <FaEnvelope className="text-blue-500" />,
+      text: 'Yeni mesaj: 3 okunmamış', 
+      time: '1 saat önce', 
+      icon: <FaEnvelope className="text-purple-500" />,
       detailUrl: '/admin/messages',
-      description: 'Mehmet Kaya: "Taşıma sırasında fazladan 2 koli daha eklemek istiyorum, mümkün müdür?"'
+      description: '3 yeni mesajınız var.'
     },
     { 
       id: 4, 
-      text: 'Taşıma tamamlandı: #3201', 
-      time: '5 saat önce', 
-      icon: <FaTruck className="text-green-500" />,
-      detailUrl: '/admin/shipments',
-      description: '#3201 numaralı taşıma başarıyla tamamlandı. Müşteri Ayşe Demir teslimatı onayladı.'
+      text: 'Sistem güncellemesi', 
+      time: '2 saat önce', 
+      icon: <FaCog className="text-gray-500" />,
+      detailUrl: '/admin/settings',
+      description: 'Sistem başarıyla güncellendi.'
     },
     { 
       id: 5, 
-      text: 'Yeni müşteri kaydı', 
-      time: '6 saat önce', 
-      icon: <FaUser className="text-purple-500" />,
-      detailUrl: '/admin/customers',
-      description: 'Leyla Kara sisteme yeni müşteri olarak kayıt oldu. Telefon numarası: 0532 XXX XX XX'
+      text: 'Yeni sürücü kaydı: Mehmet Yılmaz', 
+      time: '3 saat önce', 
+      icon: <FaIdCard className="text-orange-500" />,
+      detailUrl: '/admin/drivers',
+      description: 'Yeni bir sürücü kaydı oluşturuldu.'
     },
     { 
       id: 6, 
-      text: 'Ödeme bekleyen: #4855', 
-      time: '7 saat önce', 
-      icon: <FaFileInvoiceDollar className="text-yellow-500" />,
-      detailUrl: '/admin/payments',
-      description: '#4855 numaralı taşıma için ödeme 24 saat içinde yapılmazsa iptal edilecek. Toplam tutar: 320₺'
+      text: 'Taşıma tamamlandı: #1234', 
+      time: '5 saat önce', 
+      icon: <FaCheckCircle className="text-green-500" />,
+      detailUrl: '/admin/shipments',
+      description: 'İstanbul - Ankara taşıması başarıyla tamamlandı.'
     },
     { 
       id: 7, 
@@ -174,7 +175,8 @@ export default function AdminLayout({ children, title, isBlurred }) {
 
   // Çıkış yap fonksiyonu
   const handleLogout = () => {
-    router.push('/admin')
+    localStorage.removeItem('user');
+    router.push('/admin');
   }
 
   // Tarih formatı
@@ -190,9 +192,9 @@ export default function AdminLayout({ children, title, isBlurred }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-gray-50">
       {/* Mobil menü butonu */}
-      <div className={`md:hidden bg-orange-600 p-4 flex justify-between items-center ${isBlurred || showAllNotifications ? 'blur-sm' : ''}`}>
+      <div className={`lg:hidden fixed top-0 left-0 right-0 z-20 bg-orange-600 p-4 flex justify-between items-center`}>
         <h1 className="text-white text-xl font-bold">Taşı.app Admin</h1>
         <button 
           onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -202,27 +204,33 @@ export default function AdminLayout({ children, title, isBlurred }) {
         </button>
       </div>
       
-      {/* Sidebar - Sabit (Sticky) */}
+      {/* Sidebar */}
       <div 
         className={`
           ${isMobile ? (sidebarOpen ? 'block' : 'hidden') : 'block'} 
-          bg-orange-600 text-white w-full md:w-64 
-          md:sticky md:top-0 md:h-screen overflow-y-auto
+          fixed inset-y-0 left-0 z-10 w-64 bg-orange-600 text-white
           transition-all duration-300
-          ${isBlurred || showAllNotifications ? 'blur-sm' : ''}
         `}
       >
-        <div className="p-4 border-b border-orange-500">
-          <h1 className="text-2xl font-bold">Taşı.app Admin</h1>
+        <div className="h-full flex flex-col">
+          {/* Logo ve başlık */}
+          <div className="p-6 border-b border-orange-500">
+            <div className="flex items-center space-x-3">
+              <FaTruck className="h-8 w-8" />
+              <h1 className="text-xl font-bold">Taşı.app Admin</h1>
+            </div>
         </div>
-        <nav className="mt-4 h-full overflow-y-auto">
-          <ul>
+
+          {/* Navigasyon */}
+          <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
             {sidebarItems.map((item) => (
-              <li key={item.id}>
                 <Link 
+                key={item.id}
                   href={item.path}
-                  className={`flex items-center w-full px-4 py-3 hover:bg-orange-700 transition-colors ${
-                    router.pathname === item.path ? 'bg-orange-700' : ''
+                className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
+                  router.pathname === item.path 
+                    ? 'bg-orange-700 text-white' 
+                    : 'text-orange-100 hover:bg-orange-700'
                   }`}
                   onClick={() => {
                     if (isMobile) setSidebarOpen(false)
@@ -231,114 +239,133 @@ export default function AdminLayout({ children, title, isBlurred }) {
                   <span className="mr-3">{item.icon}</span>
                   {item.name}
                 </Link>
-              </li>
             ))}
-            <li className="mt-auto">
+          </nav>
+
+          {/* Alt bilgi */}
+          <div className="p-4 border-t border-orange-500">
               <button
                 onClick={handleLogout}
-                className="flex items-center w-full px-4 py-3 hover:bg-orange-700 transition-colors mt-8 text-orange-200"
+              className="flex items-center w-full px-4 py-3 text-orange-100 hover:bg-orange-700 rounded-lg transition-colors"
               >
-                <span className="mr-3"><FaSignOutAlt /></span>
+                <FaSignOutAlt className="mr-3" />
                 Çıkış Yap
               </button>
-            </li>
-          </ul>
-        </nav>
+          </div>
+        </div>
       </div>
 
       {/* Ana İçerik */}
-      <div className="flex-1 overflow-x-hidden relative">
+      <div className={`lg:ml-64 transition-all duration-300`}>
         {/* Header */}
-        <header className={`bg-white shadow-md sticky top-0 z-50 w-full ${isBlurred || showAllNotifications ? 'blur-sm' : ''}`}>
-          <div className="mx-auto p-4 flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
-            <div className="flex items-center">
-              <div className="mr-4 text-right">
-                <p className="text-sm font-medium text-gray-700">{formatDate(currentTime)}</p>
-                <p className="text-sm text-gray-500">{formatTime(currentTime)}</p>
+        <header className="bg-white shadow-sm py-4 px-6 sticky top-0 z-10">
+          <div className="flex justify-between items-center">
+            {/* Başlık */}
+            <h2 className="text-2xl font-semibold text-gray-800">{title}</h2>
+
+            {/* Arama ve Bildirimler */}
+            <div className="flex items-center space-x-6">
+              {/* Arama */}
+              <div className="relative hidden md:block">
+                <input 
+                  type="text" 
+                  placeholder="Ara..." 
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               </div>
-              
-              {/* Bildirimler Dropdown */}
-              <div className="relative mr-3 notifications-container">
+
+              {/* Saat ve Tarih */}
+              <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600">
+                {currentTime && (
+                  <>
+                    <span>{formatDate(currentTime)}</span>
+                    <span>|</span>
+                    <span>{formatTime(currentTime)}</span>
+                  </>
+                )}
+              </div>
+
+              {/* Bildirimler */}
+              <div className="relative notifications-container">
                 <button 
-                  className="p-2 text-gray-600 hover:text-orange-600 transition-colors relative" 
-                  onClick={() => {
-                    setShowNotifications(!showNotifications);
-                    setShowProfileMenu(false);
-                  }}
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
                 >
+                  <span className="sr-only">Bildirimleri Görüntüle</span>
                   <FaBell className="h-6 w-6" />
-                  <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full"></span>
+                  {notifications.length > 0 && (
+                    <span className="absolute top-0 right-0 block h-3 w-3 rounded-full bg-red-500 ring-2 ring-white"></span>
+                  )}
                 </button>
-                
+
+                {/* Bildirimler Dropdown */}
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg py-1 z-10">
-                    <div className="px-4 py-2 border-b border-gray-100">
-                      <h3 className="text-sm font-semibold text-gray-700">Bildirimler</h3>
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl overflow-hidden z-20">
+                    <div className="px-4 py-3 border-b border-gray-200">
+                      <h4 className="text-sm font-semibold text-gray-800">Bildirimler</h4>
                     </div>
-                    <div className="max-h-80 overflow-y-auto">
-                      {recentNotifications.map(notification => (
-                        <div key={notification.id} className="px-4 py-3 border-b border-gray-100 hover:bg-gray-50">
-                          <div className="flex items-start">
-                            <div className="mr-3 mt-1">{notification.icon}</div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-900">{notification.text}</p>
-                              <p className="text-xs text-gray-500">{notification.time}</p>
+                    <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
+                      {recentNotifications.length > 0 ? (
+                        recentNotifications.map((notification) => (
+                          <Link 
+                            key={notification.id}
+                            href={notification.detailUrl || '#'}
+                            className="block px-4 py-3 hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex items-center space-x-3">
+                              <div className="flex-shrink-0">
+                                {notification.icon}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">{notification.text}</p>
+                                <p className="text-xs text-gray-500 truncate">{notification.description}</p>
+                                <p className="text-xs text-gray-400 mt-1">{notification.time}</p>
+                              </div>
                             </div>
-                            <button 
-                              onClick={() => router.push(notification.detailUrl)}
-                              className="ml-2 text-xs py-1 px-2 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 transition-colors"
-                              title="İncele"
-                            >
-                              <FaEye />
-                            </button>
-                          </div>
+                          </Link>
+                        ))
+                      ) : (
+                        <div className="px-4 py-3 text-center text-sm text-gray-500">
+                          Yeni bildirim yok.
                         </div>
-                      ))}
+                      )}
                     </div>
-                    <div className="px-4 py-2 border-t border-gray-100">
+                    <div className="px-4 py-3 border-t border-gray-200">
                       <button 
-                        className="text-sm text-orange-600 hover:text-orange-800 w-full text-center"
-                        onClick={() => {
-                          setShowNotifications(false);
-                          setShowAllNotifications(true);
-                        }}
+                        onClick={() => {setShowNotifications(false); setShowAllNotifications(true)}}
+                        className="w-full text-center text-sm text-orange-600 hover:underline"
                       >
-                        Tümünü Görüntüle
+                        Tüm Bildirimleri Göster
                       </button>
                     </div>
                   </div>
                 )}
               </div>
-              
-              {/* Profil Dropdown */}
+
+              {/* Profil Menüsü */}
               <div className="relative profile-container">
                 <button 
-                  className="bg-white p-2 rounded-full border border-gray-200 flex items-center justify-center hover:border-orange-300 transition-colors" 
-                  onClick={() => {
-                    setShowProfileMenu(!showProfileMenu);
-                    setShowNotifications(false);
-                  }}
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  className="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
                 >
-                  <img src="/images/avatar.png" alt="Admin" className="w-8 h-8 rounded-full" onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
-                  }} />
+                  <FaUserCircle className="h-8 w-8 text-gray-600" />
+                  <span className="ml-2 hidden md:block text-gray-700">Admin User</span>
                 </button>
-                
                 {showProfileMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="text-sm font-medium text-gray-900">Admin Kullanıcı</p>
-                      <p className="text-sm text-gray-500 truncate">admin@tasiapp.com</p>
-                    </div>
-                    <Link href="/admin/settings" 
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
-                      Profil Ayarları
-                    </Link>
-                    <button 
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
+                    <Link href="/admin/profile"
+                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        Profil
+                      </Link>
+                    <Link href="/admin/settings"
+                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        Ayarlar
+                      </Link>
+                    <div className="border-t border-gray-100 my-1"></div>
+                    <button
                       onClick={handleLogout}
+                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
                     >
                       Çıkış Yap
                     </button>
@@ -349,19 +376,19 @@ export default function AdminLayout({ children, title, isBlurred }) {
           </div>
         </header>
 
-        {/* Sayfa İçeriği */}
-        <main className={`p-4 md:p-6 ${showAllNotifications ? 'blur-sm' : ''}`}>
+        {/* İçerik Alanı */}
+        <main className="p-6">
           {children}
         </main>
       </div>
 
-      {/* Tüm Bildirimler Modal */}
+      {/* Tüm Bildirimler Modalı */}
       {showAllNotifications && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto" onClick={(e) => {
           if (e.target === e.currentTarget) setShowAllNotifications(false);
         }}>
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-auto">
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-auto">
+            <div className="p-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
               <h3 className="font-semibold text-lg">Tüm Bildirimler</h3>
               <button 
                 onClick={() => setShowAllNotifications(false)}
@@ -370,54 +397,51 @@ export default function AdminLayout({ children, title, isBlurred }) {
                 <FaTimes />
               </button>
             </div>
-            <div className="p-4">
-              <div className="mb-4 flex justify-between items-center">
-                <div className="flex space-x-2">
-                  <button className="px-3 py-1 bg-orange-100 text-orange-800 rounded-md text-sm font-medium">
-                    Tümü
-                  </button>
-                  <button className="px-3 py-1 hover:bg-gray-100 text-gray-700 rounded-md text-sm font-medium">
-                    Okunmamış
-                  </button>
-                </div>
-                <button className="text-sm text-orange-600 hover:text-orange-800 flex items-center">
-                  <FaCheckCircle className="mr-1" /> Tümünü Okundu İşaretle
-                </button>
-              </div>
-              <div className="space-y-2">
-                {notifications.map(notification => (
-                  <div key={notification.id} className="border border-gray-200 rounded-lg hover:border-orange-300 transition-colors">
-                    <div className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start">
-                          <div className="bg-gray-100 p-3 rounded-full mr-3">
-                            {notification.icon}
-                          </div>
-                          <div>
-                            <h4 className="font-medium text-gray-900">{notification.text}</h4>
-                            <p className="text-sm text-gray-500 mt-1">{notification.time}</p>
-                            <p className="text-sm text-gray-600 mt-2">{notification.description}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <button 
-                            onClick={() => {
-                              setShowAllNotifications(false);
-                              router.push(notification.detailUrl);
-                            }} 
-                            className="bg-orange-600 text-white py-2 px-3 rounded hover:bg-orange-700 transition-colors flex items-center"
-                          >
-                            <FaEye className="mr-1" /> İncele
-                          </button>
-                          <button className="text-gray-400 hover:text-gray-600 transition-colors">
-                            <FaEllipsisH />
-                          </button>
-                        </div>
+            <div className="p-6 divide-y divide-gray-100">
+              {notifications.length > 0 ? (
+                notifications.map((notification) => (
+                  <div key={notification.id} className="py-4">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex-shrink-0 bg-gray-100 p-3 rounded-full">
+                        {notification.icon}
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center">
+                          <p className="text-sm font-medium text-gray-900">{notification.text}</p>
+                          <p className="text-xs text-gray-400 flex-shrink-0 ml-4">{notification.time}</p>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">{notification.description}</p>
+                        {notification.detailUrl && (
+                          <Link 
+                            href={notification.detailUrl}
+                            className="text-xs text-orange-600 hover:underline mt-1 inline-flex items-center"
+                            onClick={() => setShowAllNotifications(false)}
+                          >
+                            Detayları Gör <FaExternalLinkAlt className="ml-1 h-3 w-3" />
+                          </Link>
+                        )}
+                      </div>
+                      <button className="text-gray-400 hover:text-gray-600 p-1">
+                        <FaEllipsisH />
+                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <FaRegBell className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">Bildirim yok</h3>
+                  <p className="mt-1 text-sm text-gray-500">Henüz size gönderilmiş bir bildirim yok.</p>
+                </div>
+              )}
+            </div>
+            <div className="p-4 border-t border-gray-200 flex justify-end sticky bottom-0 bg-white z-10">
+              <button 
+                onClick={() => setShowAllNotifications(false)}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded flex items-center"
+              >
+                <FaTimes className="mr-2" /> Kapat
+              </button>
             </div>
           </div>
         </div>

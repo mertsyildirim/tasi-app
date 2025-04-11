@@ -1,76 +1,93 @@
-import { connectToDatabase } from '../../../lib/mongodb';
-import User from '../../../models/User';
-import { API_CONFIG } from '../config';
+import { connectToDatabase } from '@/lib/mongodb';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 export default async function handler(req, res) {
-  try {
-    // MongoDB bağlantısı
-    await connectToDatabase();
-
-    // Sadece POST metoduna izin ver
-    if (req.method !== 'POST') {
-      return res.status(405).json({ message: 'Method Not Allowed' });
-    }
-
-    // Login işlemini gerçekleştir
-    await loginUser(req, res);
-  } catch (error) {
-    console.error('Login API Error:', error);
-    return res.status(500).json({ message: 'Sunucu hatası', error: error.message });
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', ['POST']);
+    return res.status(405).json({ error: 'Method not allowed' });
   }
-}
 
-/**
- * Kullanıcı girişi işlemini gerçekleştiren fonksiyon
- */
-async function loginUser(req, res) {
   try {
+    const { db } = await connectToDatabase();
     const { email, password } = req.body;
 
-    // Gerekli alanları kontrol et
+    // Zorunlu alan kontrolü
     if (!email || !password) {
-      return res.status(400).json({ message: 'E-posta ve şifre gereklidir' });
+      return res.status(400).json({
+        error: 'Eksik bilgi',
+        fields: ['email', 'password']
+      });
     }
 
-    // Kullanıcıyı email ile bul
-    const user = await User.findOne({ email });
-
-    // Kullanıcı bulunamadı
+    // Kullanıcıyı bul
+    const user = await db.collection('users').findOne({ email });
     if (!user) {
-      return res.status(401).json({ message: 'Geçersiz e-posta veya şifre' });
+      return res.status(401).json({ error: 'Geçersiz email veya şifre' });
     }
 
-    // Kullanıcı aktif değil
-    if (!user.isActive) {
-      return res.status(401).json({ message: 'Hesabınız aktif değil, lütfen yönetici ile iletişime geçin' });
+    // Şifre kontrolü
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({ error: 'Geçersiz email veya şifre' });
     }
 
-    // Şifreyi kontrol et (Gerçek uygulamada şifre karşılaştırması yapılmalıdır!)
-    if (user.password !== password) {
-      return res.status(401).json({ message: 'Geçersiz e-posta veya şifre' });
+    // Hesap durumu kontrolü
+    if (user.status !== 'active') {
+      return res.status(403).json({ error: 'Hesabınız aktif değil' });
     }
 
     // JWT token oluştur
     const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
-      API_CONFIG.JWT_SECRET,
-      { expiresIn: API_CONFIG.JWT_EXPIRE }
+      {
+        userId: user._id,
+        email: user.email,
+        role: user.role
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
     );
 
-    // Şifreyi yanıttan çıkar
-    const userResponse = { ...user._doc };
-    delete userResponse.password;
+    // Refresh token oluştur
+    const refreshToken = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: '7d' }
+    );
 
-    // Token ve kullanıcı bilgilerini döndür
-    return res.status(200).json({
-      success: true,
-      message: 'Giriş başarılı',
-      token,
-      user: userResponse
+    // Son giriş zamanını güncelle
+    await db.collection('users').updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          lastLogin: new Date(),
+          refreshToken
+        }
+      }
+    );
+
+    // Giriş logunu kaydet
+    await db.collection('login_logs').insertOne({
+      userId: user._id,
+      email: user.email,
+      ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+      userAgent: req.headers['user-agent'],
+      timestamp: new Date()
     });
+
+    // Kullanıcı bilgilerini döndür
+    delete user.password;
+    delete user.refreshToken;
+
+    return res.status(200).json({
+      message: 'Giriş başarılı',
+      user,
+      token,
+      refreshToken
+    });
+
   } catch (error) {
-    console.error('Login Error:', error);
-    return res.status(500).json({ message: 'Giriş yapılırken hata oluştu', error: error.message });
+    console.error('Login error:', error);
+    return res.status(500).json({ error: 'Sunucu hatası' });
   }
 } 

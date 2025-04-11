@@ -5,7 +5,9 @@ import {
   FaUsers, FaTruck, FaClipboardList, FaChartLine, FaCog, 
   FaSignOutAlt, FaSearch, FaEdit, FaTrash, FaBell, 
   FaFileInvoiceDollar, FaUserShield, FaBars, FaTimes, FaUser, FaPlus,
-  FaEye, FaMapMarkerAlt, FaCheck, FaTimes as FaTimesCircle, FaLocationArrow
+  FaEye, FaMapMarkerAlt, FaCheck, FaTimes as FaTimesCircle, FaLocationArrow,
+  FaShoppingBag, FaCreditCard, FaEnvelope, FaUserCircle, FaRegBell, FaExternalLinkAlt, FaCheckCircle, FaEllipsisH, FaIdCard,
+  FaArrowUp, FaArrowDown, FaBox, FaRoute
 } from 'react-icons/fa'
 import { useRouter } from 'next/router'
 import AdminLayout from '../../components/admin/Layout'
@@ -25,6 +27,38 @@ export default function DashboardPage() {
   const router = useRouter()
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  // Kullanıcı kontrolü - giriş yapmamış veya admin olmayan kullanıcılar için
+  useEffect(() => {
+    const checkAuth = () => {
+      const userData = localStorage.getItem('user');
+      
+      if (!userData) {
+        console.log('Kullanıcı girişi bulunamadı, yönlendiriliyor...');
+        router.replace('/admin');
+        return;
+      }
+
+      try {
+        const user = JSON.parse(userData);
+        
+        if (!(user.type === 'admin' || user.role === 'admin')) {
+          console.log('Admin yetkisi bulunamadı, yönlendiriliyor...');
+          router.replace('/admin');
+          return;
+        }
+        
+        setUser(user);
+        setLoading(false);
+      } catch (err) {
+        console.error('Kullanıcı bilgisi çözümlenirken hata:', err);
+        localStorage.removeItem('user');
+        router.replace('/admin');
+      }
+    };
+    
+    checkAuth();
+  }, [router]);
 
   // Mobil cihaz kontrolü
   useEffect(() => {
@@ -78,23 +112,6 @@ export default function DashboardPage() {
       document.body.style.overflow = 'auto';
     }
   }, [showActivitiesModal, shipmentDetailModal, applicationDetailModal, driverLocationModal, handleKeyDown]);
-
-  useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (!userData) {
-      router.push('/portal/login');
-      return;
-    }
-
-    const parsedUser = JSON.parse(userData);
-    if (parsedUser.role !== 'admin') {
-      router.push('/portal/login');
-      return;
-    }
-    
-    setUser(parsedUser);
-    setLoading(false);
-  }, [router]);
 
   // Örnek veri
   const users = [
@@ -183,7 +200,7 @@ export default function DashboardPage() {
   // Çıkış yap fonksiyonu
   const handleLogout = () => {
     localStorage.removeItem('user');
-    router.push('/portal/login');
+    router.push('/admin');
   }
 
   // Tarih formatı
@@ -198,10 +215,112 @@ export default function DashboardPage() {
     return date.toLocaleTimeString('tr-TR', options)
   }
 
+  // Örnek veriler
+  const stats = [
+    {
+      title: 'Toplam Taşıma',
+      value: '1,234',
+      change: '+12.5%',
+      trend: 'up',
+      icon: <FaTruck className="h-6 w-6" />,
+      color: 'bg-blue-500'
+    },
+    {
+      title: 'Aktif Taşıyıcılar',
+      value: '456',
+      change: '+8.2%',
+      trend: 'up',
+      icon: <FaUsers className="h-6 w-6" />,
+      color: 'bg-green-500'
+    },
+    {
+      title: 'Bekleyen Talepler',
+      value: '89',
+      change: '-3.1%',
+      trend: 'down',
+      icon: <FaClipboardList className="h-6 w-6" />,
+      color: 'bg-yellow-500'
+    },
+    {
+      title: 'Toplam Gelir',
+      value: '₺234,567',
+      change: '+15.3%',
+      trend: 'up',
+      icon: <FaFileInvoiceDollar className="h-6 w-6" />,
+      color: 'bg-purple-500'
+    }
+  ]
+
+  const recentActivities = [
+    {
+      id: 1,
+      type: 'shipment',
+      title: 'Yeni Taşıma Talebi',
+      description: 'İstanbul - Ankara arası yeni bir taşıma talebi oluşturuldu',
+      time: '5 dakika önce',
+      icon: <FaTruck className="h-5 w-5" />,
+      color: 'text-blue-500'
+    },
+    {
+      id: 2,
+      type: 'user',
+      title: 'Yeni Taşıyıcı Kaydı',
+      description: 'ABC Lojistik firması sisteme kaydoldu',
+      time: '15 dakika önce',
+      icon: <FaUser className="h-5 w-5" />,
+      color: 'text-green-500'
+    },
+    {
+      id: 3,
+      type: 'payment',
+      title: 'Ödeme Alındı',
+      description: 'XYZ firmasından ₺12,500 ödeme alındı',
+      time: '1 saat önce',
+      icon: <FaCreditCard className="h-5 w-5" />,
+      color: 'text-purple-500'
+    },
+    {
+      id: 4,
+      type: 'route',
+      title: 'Rota Güncellendi',
+      description: 'İzmir - Antalya rotası güncellendi',
+      time: '2 saat önce',
+      icon: <FaRoute className="h-5 w-5" />,
+      color: 'text-yellow-500'
+    }
+  ]
+
+  const topCarriers = [
+    {
+      id: 1,
+      name: 'ABC Lojistik',
+      shipments: 234,
+      rating: 4.8,
+      status: 'Aktif',
+      lastActive: '5 dakika önce'
+    },
+    {
+      id: 2,
+      name: 'XYZ Transport',
+      shipments: 189,
+      rating: 4.6,
+      status: 'Aktif',
+      lastActive: '15 dakika önce'
+    },
+    {
+      id: 3,
+      name: '123 Nakliyat',
+      shipments: 156,
+      rating: 4.5,
+      status: 'Aktif',
+      lastActive: '1 saat önce'
+    }
+  ]
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
       </div>
     );
   }
@@ -214,272 +333,114 @@ export default function DashboardPage() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <div className="min-h-screen bg-gray-100">
-        {/* Mobil sidebar toggle */}
-        <div className="lg:hidden fixed top-0 left-0 right-0 z-20 bg-white shadow-md p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <FaTruck className="h-8 w-8 text-blue-600" />
-              <span className="ml-3 text-xl font-semibold text-gray-900">Yönetici Paneli</span>
-            </div>
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 rounded-md text-gray-500 hover:text-gray-600 focus:outline-none"
-            >
-              {sidebarOpen ? <FaTimes className="h-6 w-6" /> : <FaBars className="h-6 w-6" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Sidebar */}
-        <aside
-          className={`fixed inset-y-0 left-0 z-10 w-64 bg-white shadow-lg transform ${
-            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          } lg:translate-x-0 transition-transform duration-300 ease-in-out`}
-        >
-          <div className="h-full flex flex-col">
-            {/* Sidebar header */}
-            <div className="p-6 border-b">
-              <div className="flex items-center">
-                <FaTruck className="h-8 w-8 text-blue-600" />
-                <span className="ml-3 text-xl font-semibold text-gray-900">Yönetici Paneli</span>
-              </div>
-            </div>
-
-            {/* Sidebar navigation */}
-            <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-              <a
-                href="#"
-                className="flex items-center px-4 py-3 text-gray-700 bg-blue-50 rounded-md"
-              >
-                <FaChartLine className="h-5 w-5 mr-3 text-blue-500" />
-                <span>Gösterge Paneli</span>
-              </a>
-              <a
-                href="#"
-                className="flex items-center px-4 py-3 text-gray-600 hover:bg-blue-50 hover:text-gray-700 rounded-md"
-              >
-                <FaUsers className="h-5 w-5 mr-3 text-gray-500" />
-                <span>Kullanıcılar</span>
-              </a>
-              <a
-                href="#"
-                className="flex items-center px-4 py-3 text-gray-600 hover:bg-blue-50 hover:text-gray-700 rounded-md"
-              >
-                <FaTruck className="h-5 w-5 mr-3 text-gray-500" />
-                <span>Taşıyıcılar</span>
-              </a>
-              <a
-                href="#"
-                className="flex items-center px-4 py-3 text-gray-600 hover:bg-blue-50 hover:text-gray-700 rounded-md"
-              >
-                <FaClipboardList className="h-5 w-5 mr-3 text-gray-500" />
-                <span>Taşımalar</span>
-              </a>
-              <a
-                href="#"
-                className="flex items-center px-4 py-3 text-gray-600 hover:bg-blue-50 hover:text-gray-700 rounded-md"
-              >
-                <FaCog className="h-5 w-5 mr-3 text-gray-500" />
-                <span>Ayarlar</span>
-              </a>
-            </nav>
-
-            {/* Sidebar footer */}
-            <div className="p-4 border-t">
-              <div className="mb-4">
-                <div className="flex items-center">
-                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <span className="text-blue-600 font-semibold text-lg">
-                      {user?.name?.charAt(0) || 'A'}
-                    </span>
+      <AdminLayout title="Dashboard">
+        <div className="space-y-6">
+          {/* İstatistik Kartları */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {stats.map((stat, index) => (
+              <div key={index} className="bg-white rounded-xl shadow-sm p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                    <p className="text-2xl font-semibold mt-1">{stat.value}</p>
                   </div>
-                  <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-700">{user?.name || 'Admin'}</p>
-                    <p className="text-xs text-gray-500">{user?.email || 'admin@tasiapp.com'}</p>
+                  <div className={`${stat.color} p-3 rounded-lg text-white`}>
+                    {stat.icon}
                   </div>
                 </div>
+                <div className="mt-4 flex items-center">
+                  <span className={`text-sm font-medium ${
+                    stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {stat.change}
+                  </span>
+                  <span className="ml-2 text-gray-500 text-sm">geçen aya göre</span>
+                </div>
               </div>
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"
-              >
-                <FaSignOutAlt className="h-4 w-4 mr-3" />
-                <span>Çıkış Yap</span>
-              </button>
+            ))}
+          </div>
+
+          {/* Ana İçerik Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Son Aktiviteler */}
+            <div className="lg:col-span-2 bg-white rounded-xl shadow-sm p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold text-gray-900">Son Aktiviteler</h2>
+                <button className="text-orange-500 hover:text-orange-600 text-sm font-medium">
+                  Tümünü Gör
+                </button>
+              </div>
+              <div className="space-y-4">
+                {recentActivities.map((activity) => (
+                  <div key={activity.id} className="flex items-start space-x-4 p-4 rounded-lg hover:bg-gray-50">
+                    <div className={`${activity.color} p-2 rounded-lg`}>
+                      {activity.icon}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-medium text-gray-900">{activity.title}</h3>
+                      <p className="text-sm text-gray-500 mt-1">{activity.description}</p>
+                      <p className="text-xs text-gray-400 mt-1">{activity.time}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* En İyi Taşıyıcılar */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold text-gray-900">En İyi Taşıyıcılar</h2>
+                <button className="text-orange-500 hover:text-orange-600 text-sm font-medium">
+                  Tümünü Gör
+                </button>
+              </div>
+              <div className="space-y-4">
+                {topCarriers.map((carrier) => (
+                  <div key={carrier.id} className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-50">
+                    <div className="flex items-center space-x-3">
+                      <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
+                        <span className="text-orange-600 font-semibold">
+                          {carrier.name.charAt(0)}
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-900">{carrier.name}</h3>
+                        <p className="text-xs text-gray-500">{carrier.lastActive}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-gray-900">{carrier.shipments} taşıma</p>
+                      <div className="flex items-center text-yellow-500 text-sm">
+                        <span>★</span>
+                        <span className="ml-1">{carrier.rating}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </aside>
 
-        {/* Main content */}
-        <main className={`lg:pl-64 pt-4 lg:pt-0`}>
-          <div className="p-6">
-            <h1 className="text-2xl font-semibold text-gray-900 mb-8">Gösterge Paneli</h1>
-
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Toplam Kullanıcılar</p>
-                    <p className="text-2xl font-semibold text-gray-900">154</p>
-                  </div>
-                  <div className="p-3 rounded-full bg-blue-100">
-                    <FaUsers className="h-6 w-6 text-blue-600" />
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <span className="text-green-500 text-sm font-medium">↑ 12%</span>
-                  <span className="text-gray-500 text-sm ml-2">Son 30 gün</span>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Toplam Taşıyıcılar</p>
-                    <p className="text-2xl font-semibold text-gray-900">28</p>
-                  </div>
-                  <div className="p-3 rounded-full bg-green-100">
-                    <FaTruck className="h-6 w-6 text-green-600" />
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <span className="text-green-500 text-sm font-medium">↑ 8%</span>
-                  <span className="text-gray-500 text-sm ml-2">Son 30 gün</span>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Aktif Taşımalar</p>
-                    <p className="text-2xl font-semibold text-gray-900">42</p>
-                  </div>
-                  <div className="p-3 rounded-full bg-purple-100">
-                    <FaClipboardList className="h-6 w-6 text-purple-600" />
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <span className="text-green-500 text-sm font-medium">↑ 15%</span>
-                  <span className="text-gray-500 text-sm ml-2">Son 30 gün</span>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Toplam Gelir</p>
-                    <p className="text-2xl font-semibold text-gray-900">₺42,580</p>
-                  </div>
-                  <div className="p-3 rounded-full bg-yellow-100">
-                    <svg className="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <span className="text-green-500 text-sm font-medium">↑ 22%</span>
-                  <span className="text-gray-500 text-sm ml-2">Son 30 gün</span>
-                </div>
+          {/* Alt Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Harita */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-6">Aktif Taşımalar</h2>
+              <div className="h-80 bg-gray-100 rounded-lg flex items-center justify-center">
+                <p className="text-gray-500">Harita yükleniyor...</p>
               </div>
             </div>
 
-            {/* Recent Users */}
-            <div className="bg-white rounded-lg shadow mb-8">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Son Kaydolan Kullanıcılar</h2>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kullanıcı</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Katılma Tarihi</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durum</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    <tr>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                            <span className="text-blue-600 font-semibold text-lg">A</span>
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">Ali Yılmaz</div>
-                            <div className="text-sm text-gray-500">ali@example.com</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">Taşıyıcı</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">12 Mart 2024</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                          Aktif
-                        </span>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
-                            <span className="text-purple-600 font-semibold text-lg">M</span>
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">Mehmet Demir</div>
-                            <div className="text-sm text-gray-500">mehmet@example.com</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">Sürücü</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">10 Mart 2024</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                          Aktif
-                        </span>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center">
-                            <span className="text-yellow-600 font-semibold text-lg">A</span>
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">Ayşe Kaya</div>
-                            <div className="text-sm text-gray-500">ayse@example.com</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">Taşıyıcı</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">8 Mart 2024</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                          Pasif
-                        </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+            {/* Grafik */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-6">Taşıma İstatistikleri</h2>
+              <div className="h-80 bg-gray-100 rounded-lg flex items-center justify-center">
+                <p className="text-gray-500">Grafik yükleniyor...</p>
               </div>
             </div>
           </div>
-        </main>
-      </div>
+        </div>
+      </AdminLayout>
     </>
   )
 } 

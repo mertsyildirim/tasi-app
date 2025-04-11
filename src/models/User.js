@@ -4,20 +4,19 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, 'İsim gereklidir'],
+    required: true,
     trim: true,
   },
   email: {
     type: String,
-    required: [true, 'E-posta gereklidir'],
+    required: true,
     unique: true,
     lowercase: true,
     trim: true,
   },
   password: {
     type: String,
-    required: [true, 'Şifre gereklidir'],
-    minlength: [6, 'Şifre en az 6 karakter olmalıdır'],
+    required: true,
   },
   phone: {
     type: String,
@@ -26,8 +25,8 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['admin', 'customer', 'portal'],
-    default: 'customer',
+    enum: ['admin', 'user'],
+    default: 'user',
   },
   companyName: {
     type: String,

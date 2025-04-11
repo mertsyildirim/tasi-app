@@ -28,6 +28,12 @@ const USERS = [
     password: 'Admin123!',
     name: 'Admin Kullanıcı',
     role: 'admin'
+  },
+  {
+    email: 'surucu@tasiapp.com',
+    password: '1234',
+    name: 'Sürücü Kullanıcı',
+    role: 'driver'
   }
 ];
 
@@ -69,25 +75,29 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // Kullanıcı kontrolü
+      // Örnek kullanıcı kontrolü
       const user = USERS.find(u => u.email === email && u.password === password);
+      
+      console.log("Giriş yapılan kullanıcı:", user); // Debug log
       
       if (user) {
         // Kullanıcı bilgilerini localStorage'a kaydet
-        localStorage.setItem('user', JSON.stringify({
+        const userData = {
           email: user.email,
           name: user.name,
-          role: user.role,
+          type: user.role,
           company: 'Taşı Lojistik',
           phone: '+90 555 123 4567',
           address: 'Levent, İstanbul',
           taxNumber: '1234567890',
           taxOffice: 'İstanbul'
-        }));
+        };
+        
+        localStorage.setItem('user', JSON.stringify(userData));
+        console.log("LocalStorage'a kaydedilen kullanıcı:", userData); // Debug log
 
         // Giriş tipine ve kullanıcı rolüne göre yönlendirme yap
         if (loginType === 'admin') {
-          // Admin girişi yapılıyor
           if (user.role === 'admin') {
             router.push('/admin/dashboard');
           } else {
@@ -97,36 +107,36 @@ export default function Login() {
             return;
           }
         } else if (loginType === 'main') {
-          // Ana site girişi yapılıyor
           router.push('/');
         } else {
           // Portal girişi yapılıyor
+          console.log("Portal girişi, kullanıcı rolü:", user.role); // Debug log
+          
           switch (user.role) {
             case 'admin':
+              console.log("Admin rolü, yönlendiriliyor: /portal/admin/dashboard");
               router.push('/portal/admin/dashboard');
               break;
             case 'carrier':
+              console.log("Taşıyıcı rolü, yönlendiriliyor: /portal/dashboard");
               router.push('/portal/dashboard');
               break;
             case 'driver':
+              console.log("Sürücü rolü, yönlendiriliyor: /portal/driver/dashboard");
               router.push('/portal/driver/dashboard');
               break;
             default:
+              console.log("Bilinmeyen rol, varsayılan yönlendirme: /portal/dashboard");
               router.push('/portal/dashboard');
           }
         }
-        
-        // Yönlendirme işlemi sonrası bir süre bekleyerek form sıfırlama
-        setTimeout(() => {
-          setLoading(false);
-        }, 1000);
       } else {
         setError('Geçersiz e-posta veya şifre');
-        setLoading(false);
       }
     } catch (err) {
       setError('Giriş yapılırken bir hata oluştu');
       console.error('Login error:', err);
+    } finally {
       setLoading(false);
     }
   };
@@ -159,7 +169,7 @@ export default function Login() {
   return (
     <>
       <Head>
-        <title>{getTitle()} | Taşı.app</title>
+        <title>{`${getTitle()} | Taşı.app`}</title>
         <meta name="description" content={`Taşı.app ${getTitle().toLowerCase()} giriş sayfası`} />
         <link rel="icon" href="/favicon.ico" />
       </Head>

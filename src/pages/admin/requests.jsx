@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { FaSearch, FaEye, FaCheck, FaTimes, FaSms, FaMapMarkerAlt, FaTruck, FaCompass, FaCalendarAlt, FaMoneyBillWave, FaEnvelope, FaSpinner } from 'react-icons/fa'
+import { FaSearch, FaEye, FaCheck, FaTimes, FaSms, FaMapMarkerAlt, FaTruck, FaCompass, FaCalendarAlt, FaMoneyBillWave, FaEnvelope, FaSpinner, FaClipboardList } from 'react-icons/fa'
 import AdminLayout from '../../components/admin/Layout'
 import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer } from '@react-google-maps/api'
 
@@ -17,6 +17,8 @@ export default function RequestsPage() {
   const [smsSuccess, setSmsSuccess] = useState(false)
   const [directions, setDirections] = useState(null)
   const [map, setMap] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   // Google Maps yükleme
   const { isLoaded, loadError } = useJsApiLoader({
@@ -309,33 +311,87 @@ export default function RequestsPage() {
     return true;
   });
 
+  // Sayfalama için hesaplamalar
+  const totalPages = Math.ceil(filteredRequests.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentItems = filteredRequests.slice(startIndex, endIndex)
+
+  // Sayfa değiştirme fonksiyonu
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber)
+  }
+
+  // Sayfa numaralarını oluşturma fonksiyonu
+  const getPageNumbers = () => {
+    const pageNumbers = []
+    const maxVisiblePages = 5 // Görünecek maksimum sayfa numarası
+    
+    if (totalPages <= maxVisiblePages) {
+      // Toplam sayfa sayısı maxVisiblePages'den az ise tüm sayfaları göster
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i)
+      }
+    } else {
+      // Toplam sayfa sayısı maxVisiblePages'den fazla ise akıllı sayfalama yap
+      if (currentPage <= 3) {
+        // Başlangıç sayfalarındaysa
+        for (let i = 1; i <= 4; i++) {
+          pageNumbers.push(i)
+        }
+        pageNumbers.push('...')
+        pageNumbers.push(totalPages)
+      } else if (currentPage >= totalPages - 2) {
+        // Son sayfalardaysa
+        pageNumbers.push(1)
+        pageNumbers.push('...')
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pageNumbers.push(i)
+        }
+      } else {
+        // Ortadaki sayfalardaysa
+        pageNumbers.push(1)
+        pageNumbers.push('...')
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pageNumbers.push(i)
+        }
+        pageNumbers.push('...')
+        pageNumbers.push(totalPages)
+      }
+    }
+    
+    return pageNumbers
+  }
+
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-6">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <h1 className="text-2xl font-bold text-gray-800">Talepler</h1>
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Ara..."
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <FaSearch className="absolute left-3 top-3 text-gray-400" />
+          <div className="flex flex-col w-full md:flex-row md:w-auto gap-4">
+            <div className="relative w-full md:w-auto">
+              <input
+                type="text"
+                placeholder="Talep ara..."
+                className="pl-10 pr-4 py-2 w-full md:min-w-[250px] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            </div>
           </div>
         </div>
 
         {/* Sekmeler */}
-        <div className="flex overflow-x-auto pb-2 mb-4 gap-2">
+        <div className="flex overflow-x-auto pb-2 mb-6 gap-2">
           {tabs.map(tab => (
             <button
               key={tab.id}
-              className={`px-4 py-2 rounded-md whitespace-nowrap ${
-                selectedTab === tab.id
-                  ? 'bg-orange-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                selectedTab === tab.id 
+                  ? 'bg-orange-100 text-orange-800' 
+                  : 'bg-white text-gray-700 hover:bg-gray-100'
+              } mb-2`}
               onClick={() => setSelectedTab(tab.id)}
             >
               {tab.label}
@@ -343,74 +399,188 @@ export default function RequestsPage() {
           ))}
         </div>
 
+        {/* İstatistik Kartları */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center">
+              <div className="bg-orange-100 p-3 rounded-full mr-4">
+                <FaClipboardList className="text-orange-600" />
+              </div>
+              <div>
+                <h3 className="text-gray-500 text-sm">Toplam Talep</h3>
+                <p className="text-2xl font-bold">{requests.length}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center">
+              <div className="bg-blue-100 p-3 rounded-full mr-4">
+                <FaClipboardList className="text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-gray-500 text-sm">Yeni Talepler</h3>
+                <p className="text-2xl font-bold">{requests.filter(request => request.status === 'Yeni').length}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center">
+              <div className="bg-yellow-100 p-3 rounded-full mr-4">
+                <FaClipboardList className="text-yellow-600" />
+              </div>
+              <div>
+                <h3 className="text-gray-500 text-sm">Bekleyen Onaylar</h3>
+                <p className="text-2xl font-bold">{requests.filter(request => request.status === 'Taşıyıcı Onayı Bekleniyor').length}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center">
+              <div className="bg-red-100 p-3 rounded-full mr-4">
+                <FaClipboardList className="text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-gray-500 text-sm">İptal Edilen</h3>
+                <p className="text-2xl font-bold">{requests.filter(request => request.status === 'İptal Edildi').length}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Talepler Tablosu */}
-        <div className="bg-white rounded-lg shadow overflow-x-auto">
-          <table className="min-w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Talep No</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Müşteri</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rota</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tarih</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durum</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredRequests.length > 0 ? (
-                filteredRequests.map((request) => (
-                  <tr key={request.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{request.id}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div>{request.customerName}</div>
-                      <div className="text-xs text-gray-400">{request.customerPhone}</div>
-                    </td>
-                    <td className="px-4 py-4 text-sm text-gray-500">
-                      <div className="flex items-center"><FaMapMarkerAlt className="text-red-500 mr-1" />{request.pickupLocation}</div>
-                      <div className="flex items-center mt-1"><FaMapMarkerAlt className="text-green-500 mr-1" />{request.deliveryLocation}</div>
-                      <div className="text-xs text-gray-400 mt-1">{request.distance} • {request.vehicle}</div>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex items-center"><FaCalendarAlt className="text-gray-400 mr-1" />{request.date}</div>
-                      <div className="flex items-center mt-1"><FaMoneyBillWave className="text-green-500 mr-1" />{request.price}</div>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(request.status)}`}>
-                        {request.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex space-x-2">
-                        <button 
-                          className="p-1.5 bg-blue-100 rounded-full text-blue-600 hover:bg-blue-200 transition-colors"
-                          onClick={() => handleViewRequest(request)}
-                          title="Detayları Görüntüle"
-                        >
-                          <FaEye />
-                        </button>
-                        
-                        {request.status === 'İptal Edildi' && (
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Talep No</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Müşteri</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rota</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tarih</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durum</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {currentItems.length > 0 ? (
+                  currentItems.map((request) => (
+                    <tr key={request.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{request.id}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{request.customerName}</div>
+                        <div className="text-sm text-gray-500">{request.customerPhone}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center text-sm text-gray-900">
+                          <FaMapMarkerAlt className="text-red-500 mr-1 flex-shrink-0" />
+                          <span className="truncate max-w-[200px]">{request.pickupLocation}</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-900 mt-1">
+                          <FaMapMarkerAlt className="text-green-500 mr-1 flex-shrink-0" />
+                          <span className="truncate max-w-[200px]">{request.deliveryLocation}</span>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">{request.distance} • {request.vehicle}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center text-sm text-gray-900">
+                          <FaCalendarAlt className="text-gray-400 mr-1" />
+                          {request.date}
+                        </div>
+                        <div className="flex items-center text-sm text-green-600 mt-1">
+                          <FaMoneyBillWave className="mr-1" />
+                          {request.price}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(request.status)}`}>
+                          {request.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <div className="flex space-x-2">
                           <button 
-                            className="p-1.5 bg-green-100 rounded-full text-green-600 hover:bg-green-200 transition-colors"
-                            onClick={() => handleSendSMS(request)}
-                            title="İndirim SMS'i Gönder"
+                            className="p-1.5 bg-blue-100 rounded-full text-blue-600 hover:bg-blue-200 transition-colors"
+                            onClick={() => handleViewRequest(request)}
+                            title="Detayları Görüntüle"
                           >
-                            <FaSms />
+                            <FaEye />
                           </button>
-                        )}
-                      </div>
+                          
+                          {request.status === 'İptal Edildi' && (
+                            <button 
+                              className="p-1.5 bg-green-100 rounded-full text-green-600 hover:bg-green-200 transition-colors"
+                              onClick={() => handleSendSMS(request)}
+                              title="İndirim SMS'i Gönder"
+                            >
+                              <FaSms />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                      Kriterlere uygun talep bulunamadı.
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
-                    Kriterlere uygun talep bulunamadı.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-sm text-gray-700">
+              Toplam <span className="font-medium">{filteredRequests.length}</span> talepten{' '}
+              <span className="font-medium">{startIndex + 1}</span>-
+              <span className="font-medium">{Math.min(endIndex, filteredRequests.length)}</span> arası gösteriliyor
+            </div>
+            <div className="flex flex-wrap justify-center gap-1">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`px-3 py-1 border border-gray-300 rounded-md text-sm ${
+                  currentPage === 1
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'hover:bg-gray-50 text-gray-700'
+                }`}
+              >
+                Önceki
+              </button>
+              
+              {getPageNumbers().map((pageNumber, index) => (
+                <button
+                  key={index}
+                  onClick={() => typeof pageNumber === 'number' && handlePageChange(pageNumber)}
+                  className={`px-3 py-1 border border-gray-300 rounded-md text-sm ${
+                    pageNumber === currentPage
+                      ? 'bg-orange-50 text-orange-600 border-orange-200'
+                      : pageNumber === '...'
+                      ? 'cursor-default'
+                      : 'hover:bg-gray-50 text-gray-700'
+                  }`}
+                  disabled={pageNumber === '...'}
+                >
+                  {pageNumber}
+                </button>
+              ))}
+              
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className={`px-3 py-1 border border-gray-300 rounded-md text-sm ${
+                  currentPage === totalPages
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'hover:bg-gray-50 text-gray-700'
+                }`}
+              >
+                Sonraki
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

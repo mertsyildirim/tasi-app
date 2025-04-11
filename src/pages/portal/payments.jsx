@@ -1,159 +1,422 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import PortalLayout from '../../components/portal/Layout';
-import { FaSearch, FaCalendarAlt, FaMoneyBillWave, FaCheck, FaClock, FaExclamationTriangle, FaFileInvoiceDollar } from 'react-icons/fa';
+import { FaMoneyBillWave, FaSearch, FaFilter, FaPlus, FaEye, FaTimes, FaChartLine, FaUsers, FaTachometerAlt, FaStar, FaIdCard, FaCar, FaRoute, FaMapMarkerAlt, FaClock, FaUser, FaBuilding, FaPhone, FaEnvelope, FaCreditCard, FaCheckCircle, FaExclamationCircle, FaCalendarAlt } from 'react-icons/fa';
 
 export default function Payments() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [selectedPayment, setSelectedPayment] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateRange, setDateRange] = useState({
-    start: '',
-    end: ''
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    status: 'all',
+    dateRange: 'all',
+    type: 'all'
   });
 
+  useEffect(() => {
+    // Kullanıcı kontrolü
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      router.push('/portal/login');
+      return;
+    }
+    setLoading(false);
+  }, [router]);
+
+  // Örnek ödeme verileri
   const [payments] = useState([
     {
-      id: 1,
-      period: '1-15 Mart 2024',
-      totalShipments: 45,
-      totalAmount: 12500,
-      status: 'Ödendi',
-      paymentDate: '15.03.2024',
-      invoiceNumber: 'INV-2024-001',
-      details: [
-        { date: '01.03.2024', shipmentCount: 12, amount: 3500 },
-        { date: '05.03.2024', shipmentCount: 15, amount: 4200 },
-        { date: '10.03.2024', shipmentCount: 18, amount: 4800 }
-      ]
+      id: 'PAY001',
+      customer: 'ABC Lojistik',
+      amount: 12500,
+      status: 'completed',
+      date: '2024-02-20',
+      type: 'credit_card',
+      description: '15.01-20.01 tarihleri arası taşımaların ödemesi'
     },
     {
-      id: 2,
-      period: '16-31 Mart 2024',
-      totalShipments: 38,
-      totalAmount: 9800,
-      status: 'Beklemede',
-      paymentDate: '31.03.2024',
-      invoiceNumber: 'INV-2024-002',
-      details: [
-        { date: '16.03.2024', shipmentCount: 10, amount: 2800 },
-        { date: '20.03.2024', shipmentCount: 14, amount: 3600 },
-        { date: '25.03.2024', shipmentCount: 14, amount: 3400 }
-      ]
+      id: 'PAY002',
+      customer: 'XYZ Taşımacılık',
+      amount: 8750,
+      status: 'pending',
+      date: '2024-02-21',
+      type: 'bank_transfer',
+      description: '22.01-27.01 tarihleri arası taşımaların ödemesi'
     },
     {
-      id: 3,
-      period: '1-15 Nisan 2024',
-      totalShipments: 42,
-      totalAmount: 11200,
-      status: 'Planlandı',
-      paymentDate: '15.04.2024',
-      invoiceNumber: 'INV-2024-003',
-      details: [
-        { date: '01.04.2024', shipmentCount: 11, amount: 3100 },
-        { date: '05.04.2024', shipmentCount: 16, amount: 4200 },
-        { date: '10.04.2024', shipmentCount: 15, amount: 3900 }
-      ]
+      id: 'PAY003',
+      customer: 'DEF Nakliyat',
+      amount: 15000,
+      status: 'overdue',
+      date: '2024-02-19',
+      type: 'bank_transfer',
+      description: '29.01-03.02 tarihleri arası taşımaların ödemesi'
     }
   ]);
 
-  const filteredPayments = payments.filter(payment =>
-    payment.period.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    payment.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'Ödendi':
-        return <FaCheck className="h-5 w-5 text-green-500" />;
-      case 'Beklemede':
-        return <FaClock className="h-5 w-5 text-yellow-500" />;
-      case 'Planlandı':
-        return <FaCalendarAlt className="h-5 w-5 text-blue-500" />;
-      default:
-        return <FaExclamationTriangle className="h-5 w-5 text-red-500" />;
-    }
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
+
+  const applyFilters = () => {
+    // Filtreleme işlemleri burada yapılacak
+    setShowFilters(false);
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      status: 'all',
+      dateRange: 'all',
+      type: 'all'
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+      </div>
+    );
+  }
 
   return (
     <PortalLayout title="Ödemeler">
-      <div className="space-y-6">
-        {/* Başlık ve Arama */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h1 className="text-2xl font-semibold text-gray-900">Ödeme Bilgileri</h1>
-          <div className="flex gap-4 w-full sm:w-auto">
-            <div className="relative flex-1 sm:flex-none">
-              <input
-                type="text"
-                placeholder="Dönem veya fatura no ara..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <FaSearch className="absolute left-3 top-3 text-gray-400" />
+      <div className="space-y-6 p-4">
+        {/* Üst Bilgi Kartları */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white rounded-lg shadow-md p-5">
+            <div className="flex justify-between items-center mb-2">
+              <div className="p-3 bg-green-100 rounded-full">
+                <FaMoneyBillWave className="h-5 w-5 text-green-500" />
+              </div>
+              <span className="text-xs text-green-700 font-semibold bg-green-50 px-2 py-1 rounded-full">
+                Toplam
+              </span>
             </div>
-            <div className="flex gap-2">
-              <input
-                type="date"
-                value={dateRange.start}
-                onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <input
-                type="date"
-                value={dateRange.end}
-                onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+            <h3 className="text-gray-500 text-sm">Toplam Gelir</h3>
+            <p className="text-2xl font-bold text-gray-800">36.250 ₺</p>
+            <p className="mt-2 text-xs text-green-600">
+              <FaChartLine className="inline mr-1" />
+              <span>%15 artış</span>
+            </p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-5">
+            <div className="flex justify-between items-center mb-2">
+              <div className="p-3 bg-yellow-100 rounded-full">
+                <FaExclamationCircle className="h-5 w-5 text-yellow-500" />
+              </div>
+              <span className="text-xs text-yellow-700 font-semibold bg-yellow-50 px-2 py-1 rounded-full">
+                Bekleyen
+              </span>
             </div>
+            <h3 className="text-gray-500 text-sm">Bekleyen Ödemeler</h3>
+            <p className="text-2xl font-bold text-gray-800">8.750 ₺</p>
+            <p className="mt-2 text-xs text-yellow-600">
+              <FaChartLine className="inline mr-1" />
+              <span>%5 artış</span>
+            </p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-5">
+            <div className="flex justify-between items-center mb-2">
+              <div className="p-3 bg-blue-100 rounded-full">
+                <FaCreditCard className="h-5 w-5 text-blue-500" />
+              </div>
+              <span className="text-xs text-blue-700 font-semibold bg-blue-50 px-2 py-1 rounded-full">
+                Ortalama
+              </span>
+            </div>
+            <h3 className="text-gray-500 text-sm">{new Date().getFullYear()} Yılı Ortalama Aylık Ödeme</h3>
+            <p className="text-2xl font-bold text-gray-800">12.083 ₺</p>
+            <p className="mt-2 text-xs text-green-600">
+              <FaChartLine className="inline mr-1" />
+              <span>%8 artış</span>
+            </p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-5">
+            <div className="flex justify-between items-center mb-2">
+              <div className="p-3 bg-purple-100 rounded-full">
+                <FaCheckCircle className="h-5 w-5 text-purple-500" />
+              </div>
+              <span className="text-xs text-purple-700 font-semibold bg-purple-50 px-2 py-1 rounded-full">
+                İşlem
+              </span>
+            </div>
+            <h3 className="text-gray-500 text-sm">Toplam İşlem</h3>
+            <p className="text-2xl font-bold text-gray-800">3</p>
+            <p className="mt-2 text-xs text-green-600">
+              <FaChartLine className="inline mr-1" />
+              <span>%10 artış</span>
+            </p>
           </div>
         </div>
 
-        {/* Ödeme Kartları */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredPayments.map((payment) => (
-            <div key={payment.id} className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
+        {/* Arama ve Filtreler */}
+        <div className="bg-white rounded-lg shadow-md p-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Ödeme ara..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                />
+                <FaSearch className="absolute left-3 top-3 text-gray-400" />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setShowFilters(!showFilters)}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 flex items-center"
+              >
+                <FaFilter className="mr-2" />
+                Filtrele
+              </button>
+            </div>
+          </div>
+
+          {/* Filtre Paneli */}
+          {showFilters && (
+            <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Durum</label>
+                  <select
+                    name="status"
+                    value={filters.status}
+                    onChange={handleFilterChange}
+                    className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="all">Tümü</option>
+                    <option value="completed">Tamamlandı</option>
+                    <option value="pending">Beklemede</option>
+                    <option value="overdue">Gecikmiş</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tarih Aralığı</label>
+                  <select
+                    name="dateRange"
+                    value={filters.dateRange}
+                    onChange={handleFilterChange}
+                    className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="all">Tümü</option>
+                    <option value="today">Bugün</option>
+                    <option value="week">Bu Hafta</option>
+                    <option value="month">Bu Ay</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Ödeme Tipi</label>
+                  <select
+                    name="type"
+                    value={filters.type}
+                    onChange={handleFilterChange}
+                    className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="all">Tümü</option>
+                    <option value="credit_card">Kredi Kartı</option>
+                    <option value="bank_transfer">Banka Transferi</option>
+                  </select>
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  onClick={resetFilters}
+                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+                >
+                  Sıfırla
+                </button>
+                <button
+                  onClick={applyFilters}
+                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm"
+                >
+                  Uygula
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Ödeme Listesi */}
+        <div className="bg-white rounded-lg shadow-md p-4">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Ödeme Listesi</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {payments.map(payment => (
+              <div key={payment.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{payment.period}</h3>
-                    <p className="text-sm text-gray-500">Fatura No: {payment.invoiceNumber}</p>
+                    <h4 className="font-medium text-gray-900">Ödeme #{payment.id}</h4>
                   </div>
-                  {getStatusIcon(payment.status)}
+                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                    payment.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                    payment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {payment.status === 'completed' ? 'Tamamlandı' : 
+                     payment.status === 'pending' ? 'Beklemede' : 
+                     'Gecikmiş'}
+                  </span>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Toplam Sevkiyat</span>
-                    <span className="text-sm font-medium">{payment.totalShipments}</span>
+
+                <div className="space-y-2">
+                  <div className="flex items-center text-sm">
+                    <FaMoneyBillWave className="text-blue-500 mr-2" />
+                    <span>{payment.amount.toLocaleString('tr-TR')} ₺</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Toplam Tutar</span>
-                    <span className="text-sm font-medium">{payment.totalAmount.toLocaleString('tr-TR')} ₺</span>
+                  <div className="flex items-center text-sm">
+                    <FaCreditCard className="text-blue-500 mr-2" />
+                    <span>{payment.type === 'credit_card' ? 'Kredi Kartı' : 'Banka Transferi'}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Ödeme Tarihi</span>
-                    <span className="text-sm font-medium">{payment.paymentDate}</span>
+                  <div className="flex items-center text-sm">
+                    <FaCalendarAlt className="text-blue-500 mr-2" />
+                    <span>{payment.description}</span>
                   </div>
                 </div>
-                <div className="mt-4 pt-4 border-t">
-                  <h4 className="text-sm font-medium text-gray-900 mb-2">Detaylı Dağılım</h4>
-                  <div className="space-y-2">
-                    {payment.details.map((detail, index) => (
-                      <div key={index} className="flex justify-between text-sm">
-                        <span className="text-gray-500">{detail.date}</span>
-                        <span className="font-medium">{detail.shipmentCount} sevkiyat - {detail.amount.toLocaleString('tr-TR')} ₺</span>
+
+                <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
+                  <div className="flex items-center text-sm text-gray-500">
+                    <FaClock className="mr-1" />
+                    <span>{payment.date}</span>
+                  </div>
+                  {payment.status === 'completed' && (
+                    <button 
+                      onClick={() => setSelectedPayment(payment)}
+                      className="text-orange-600 hover:text-orange-700 font-medium"
+                    >
+                      Dekontu Gör
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Ödeme Detay Modal */}
+      {selectedPayment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-lg font-medium text-gray-900">Ödeme Detayları</h3>
+              <button 
+                onClick={() => setSelectedPayment(null)}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <FaTimes className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 mb-2">Ödeme Bilgileri</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="flex items-center mb-3">
+                      <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mr-3">
+                        <FaMoneyBillWave className="h-5 w-5 text-orange-500" />
                       </div>
-                    ))}
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Ödeme No</p>
+                        <p className="text-lg font-semibold text-gray-900">#{selectedPayment.id}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center mb-3">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                        <FaBuilding className="h-5 w-5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Müşteri</p>
+                        <p className="text-lg font-semibold text-gray-900">{selectedPayment.customer}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                        <FaClock className="h-5 w-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Tarih</p>
+                        <p className="text-lg font-semibold text-gray-900">{selectedPayment.date}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="mt-4 flex justify-end">
-                  <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                    <FaFileInvoiceDollar />
-                    <span>Fatura Görüntüle</span>
-                  </button>
+                
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 mb-2">Ödeme Detayları</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="space-y-3">
+                      <div className="flex items-center">
+                        <FaMoneyBillWave className="h-5 w-5 text-blue-500 mr-3" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">Tutar</p>
+                          <p className="text-base text-gray-700">{selectedPayment.amount.toLocaleString('tr-TR')} ₺</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center">
+                        <FaCreditCard className="h-5 w-5 text-blue-500 mr-3" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">Ödeme Yöntemi</p>
+                          <p className="text-base text-gray-700">
+                            {selectedPayment.type === 'credit_card' ? 'Kredi Kartı' : 'Banka Transferi'}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center">
+                        <FaCheckCircle className="h-5 w-5 text-blue-500 mr-3" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">Durum</p>
+                          <span className={`text-sm font-semibold px-2 py-1 rounded-full ${
+                            selectedPayment.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                            selectedPayment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {selectedPayment.status === 'completed' ? 'Tamamlandı' : 
+                             selectedPayment.status === 'pending' ? 'Beklemede' : 
+                             'Gecikmiş'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="md:col-span-2">
+                  <h4 className="text-sm font-medium text-gray-500 mb-2">Açıklama</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-gray-700">{selectedPayment.description}</p>
+                  </div>
                 </div>
               </div>
             </div>
-          ))}
+            
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={() => setSelectedPayment(null)}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+              >
+                Kapat
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </PortalLayout>
   );
 } 
