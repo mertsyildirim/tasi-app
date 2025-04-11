@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import React, { useState, useEffect }from 'react';
+import { useRouter }from 'next/router';
 import PortalLayout from '../../components/portal/Layout';
-import { FaEnvelope, FaSearch, FaPlus, FaFilter, FaUser, FaTruck, FaMapMarkedAlt, FaClock, FaCheckCircle, FaExclamationCircle, FaTimes, FaEdit, FaTrash, FaCalendarAlt, FaUserTie, FaPaperPlane, FaInbox, FaArchive, FaStar, FaReply, FaPaperclip, FaMap } from 'react-icons/fa';
+import { FaEnvelope, FaSearch, FaPlus, FaFilter, FaUser, FaTruck, FaMapMarkedAlt, FaClock, FaCheckCircle, FaExclamationCircle, FaTimes, FaEdit, FaTrash, FaCalendarAlt, FaUserTie, FaPaperPlane, FaInbox, FaArchive, FaStar, FaReply, FaPaperclip, FaMap }from 'react-icons/fa';
 import Script from 'next/script';
 
 export default function Messages() {
@@ -373,7 +373,7 @@ export default function Messages() {
             <div className="space-y-4">
               {systemMessages.map(message => (
                 <div 
-                  key={message.id} 
+                  key={message.id}
                   className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${
                     message.status === 'unread' ? 'border-orange-200 bg-orange-50' : 'border-gray-200'
                   }`}
@@ -408,7 +408,7 @@ export default function Messages() {
                     </div>
                     <div className="flex items-center">
                       <FaCalendarAlt className="mr-1" />
-                      <span>{message.date} {message.time}</span>
+                      <span>{message.date}{message.time}</span>
                     </div>
                     <div className="flex items-center">
                       <FaEnvelope className="mr-1" />
@@ -438,7 +438,7 @@ export default function Messages() {
             <div className="space-y-4">
               {customerMessages.map(message => (
                 <div 
-                  key={message.id} 
+                  key={message.id}
                   className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${
                     message.status === 'unread' ? 'border-orange-200 bg-orange-50' : 'border-gray-200'
                   }`}
@@ -473,7 +473,7 @@ export default function Messages() {
                     </div>
                     <div className="flex items-center">
                       <FaCalendarAlt className="mr-1" />
-                      <span>{message.date} {message.time}</span>
+                      <span>{message.date}{message.time}</span>
                     </div>
                     <div className="flex items-center">
                       <FaEnvelope className="mr-1" />
@@ -513,7 +513,7 @@ export default function Messages() {
             </button>
         </div>
 
-            <form onSubmit={handleSubmitMessage} className="p-6">
+            <form onSubmit={handleSubmitMessage}className="p-6">
         <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -668,7 +668,7 @@ export default function Messages() {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-900">Tarih</p>
-                        <p className="text-lg font-semibold text-gray-900">{selectedMessage.date} {selectedMessage.time}</p>
+                        <p className="text-lg font-semibold text-gray-900">{selectedMessage.date}{selectedMessage.time}</p>
                       </div>
                     </div>
 
@@ -701,7 +701,7 @@ export default function Messages() {
                       <div className="bg-gray-50 p-4 rounded-lg">
                         <ul className="space-y-2">
                           {selectedMessage.attachments.map((attachment, index) => (
-                            <li key={index} className="flex items-center text-blue-600 hover:text-blue-800">
+                            <li key={index}className="flex items-center text-blue-600 hover:text-blue-800">
                               <FaPaperclip className="mr-2" />
                               <span>{attachment}</span>
                             </li>
@@ -852,4 +852,5 @@ export default function Messages() {
       )}
     </PortalLayout>
   );
-} 
+}
+
