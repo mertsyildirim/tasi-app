@@ -1853,8 +1853,7 @@ export default function Profile() {
       </div>
     </PortalLayout>
   );
-} 
-                            key={district.id}
+}
                             className={`px-3 py-2 cursor-pointer ${
                               index === selectedDistrictIndex 
                                 ? 'bg-blue-100 text-blue-800' 
