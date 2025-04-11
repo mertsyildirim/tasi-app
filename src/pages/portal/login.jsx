@@ -70,72 +70,36 @@ export default function Login() {
   }, []);
 
   const handleLogin = async (e) => {
-    if (e) e.preventDefault();
-    setError('');
+    e.preventDefault();
     setLoading(true);
+    setError('');
 
     try {
-      // Örnek kullanıcı kontrolü
-      const user = USERS.find(u => u.email === email && u.password === password);
-      
-      console.log("Giriş yapılan kullanıcı:", user); // Debug log
-      
-      if (user) {
-        // Kullanıcı bilgilerini localStorage'a kaydet
-        const userData = {
-          email: user.email,
-          name: user.name,
-          type: user.role,
-          company: 'Taşı Lojistik',
-          phone: '+90 555 123 4567',
-          address: 'Levent, İstanbul',
-          taxNumber: '1234567890',
-          taxOffice: 'İstanbul'
-        };
-        
-        localStorage.setItem('user', JSON.stringify(userData));
-        console.log("LocalStorage'a kaydedilen kullanıcı:", userData); // Debug log
+      // Token için gerekli verileri hazırla
+      const tokenData = {
+        email: email,
+        role: 'driver',
+        exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 saat geçerli
+        iat: Math.floor(Date.now() / 1000), // Token oluşturma zamanı
+        jti: Math.random().toString(36).substring(2) // Benzersiz token ID
+      };
 
-        // Giriş tipine ve kullanıcı rolüne göre yönlendirme yap
-        if (loginType === 'admin') {
-          if (user.role === 'admin') {
-            router.push('/admin/dashboard');
-          } else {
-            setError('Yetkisiz erişim. Bu alan sadece yöneticiler içindir.');
-            localStorage.removeItem('user');
-            setLoading(false);
-            return;
-          }
-        } else if (loginType === 'main') {
-          router.push('/');
-        } else {
-          // Portal girişi yapılıyor
-          console.log("Portal girişi, kullanıcı rolü:", user.role); // Debug log
-          
-          switch (user.role) {
-            case 'admin':
-              console.log("Admin rolü, yönlendiriliyor: /portal/admin/dashboard");
-              router.push('/portal/admin/dashboard');
-              break;
-            case 'carrier':
-              console.log("Taşıyıcı rolü, yönlendiriliyor: /portal/dashboard");
-              router.push('/portal/dashboard');
-              break;
-            case 'driver':
-              console.log("Sürücü rolü, yönlendiriliyor: /portal/driver/dashboard");
-              router.push('/portal/driver/dashboard');
-              break;
-            default:
-              console.log("Bilinmeyen rol, varsayılan yönlendirme: /portal/dashboard");
-              router.push('/portal/dashboard');
-          }
-        }
-      } else {
-        setError('Geçersiz e-posta veya şifre');
-      }
-    } catch (err) {
-      setError('Giriş yapılırken bir hata oluştu');
-      console.error('Login error:', err);
+      // Kullanıcı verisini oluştur
+      const userData = {
+        email: email,
+        name: 'Örnek Sürücü',
+        role: 'driver',
+        token: btoa(JSON.stringify(tokenData))
+      };
+
+      // Kullanıcı verisini localStorage'a kaydet
+      localStorage.setItem('userData', JSON.stringify(userData));
+
+      // Sürücü dashboard'una yönlendir
+      router.push('/portal/driver/dashboard');
+    } catch (error) {
+      console.error('Giriş hatası:', error);
+      setError('Giriş yapılırken bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
       setLoading(false);
     }

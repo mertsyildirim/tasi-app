@@ -1000,84 +1000,71 @@ export default function DriverDashboard() {
   };
 
   useEffect(() => {
-    const checkAuth = () => {
-      try {
-        const userData = localStorage.getItem('user');
-        if (!userData) {
-          router.push('/portal/login');
-          return;
-        }
-        
-        const user = JSON.parse(userData);
-        if (user.type !== 'driver') {
-          router.push('/portal/dashboard');
-          return;
-        }
-        
-        setUser(user);
-        
-        // Kullanıcı adını formatla
-        const nameParts = user.name.split(' ');
-        const formattedName = nameParts.length > 1 
-          ? `${nameParts[0]} ${nameParts[nameParts.length - 1]}` 
-          : user.name;
-        
-        user.formattedName = formattedName;
-        
-        // Örnek istatistikler
-        setStats({
-          completed: 24,
-          inProgress: 1,
-          distance: 8576,
-          earnings: 14850
-        });
-        
-        // Örnek görevler
-        setTasks([
-          {
-            id: 1,
-            title: 'İstanbul Kadıköy - Ankara Çankaya Arası Taşıma',
-            date: '12 Haziran 2023',
-            status: 'active',
-            customer: 'ABC Lojistik',
-            pickup: 'İstanbul, Kadıköy',
-            delivery: 'Ankara, Çankaya'
-          },
-          {
-            id: 2,
-            title: 'İzmir Konak - Antalya Muratpaşa Arası Taşıma',
-            date: '15 Haziran 2023',
-            status: 'pending',
-            customer: 'XYZ Taşımacılık',
-            pickup: 'İzmir, Konak',
-            delivery: 'Antalya, Muratpaşa'
-          },
-          {
-            id: 3,
-            title: 'Ankara Çankaya - İstanbul Beşiktaş Arası Taşıma',
-            date: new Date().toLocaleDateString('tr-TR'),
-            status: 'active',
-            customer: 'demo@tasiapp.com',
-            pickup: 'Ankara, Çankaya',
-            delivery: 'İstanbul, Beşiktaş',
-            driver: 'surucu@tasiapp.com',
-            vehicle: '06 ABC 123',
-            cargoType: 'Elektronik Eşya',
-            weight: '850 kg',
-            price: '₺3500',
-            notes: 'Kırılabilir eşya, dikkatli taşınması gerekiyor.'
-          }
-        ]);
-      } catch (error) {
-        console.error('Kontrol hatası:', error);
-        router.push('/portal/login');
-      } finally {
-        setLoading(false);
-      }
-    };
+    // Token kontrolü
+    const userData = localStorage.getItem('userData');
+    if (!userData) {
+      console.error('Token bulunamadı');
+      router.push('/portal/login');
+      return;
+    }
 
-    checkAuth();
+    try {
+      const user = JSON.parse(userData);
+      if (!user.token) {
+        console.error('Geçersiz token formatı');
+        router.push('/portal/login');
+        return;
+      }
+
+      // Token'ı decode et
+      const tokenData = JSON.parse(atob(user.token));
+      
+      // Token süresi kontrolü
+      if (tokenData.exp < Math.floor(Date.now() / 1000)) {
+        console.error('Token süresi dolmuş');
+        localStorage.removeItem('userData');
+        router.push('/portal/login');
+        return;
+      }
+
+      // Sürücü rolü kontrolü
+      if (tokenData.role !== 'driver') {
+        console.error('Geçersiz kullanıcı rolü');
+        router.push('/portal/login');
+        return;
+      }
+
+      // Kullanıcı bilgilerini state'e kaydet
+      setUser(user);
+    } catch (error) {
+      console.error('Token doğrulama hatası:', error);
+      localStorage.removeItem('userData');
+      router.push('/portal/login');
+    }
   }, [router]);
+
+  const handleLogout = () => {
+    // Konum izlemeyi durdur
+    if (locationStatus.watchId) {
+      navigator.geolocation.clearWatch(locationStatus.watchId);
+    }
+    
+    // Tüm oturum verilerini temizle
+    localStorage.removeItem('userData');
+    
+    // State'i temizle
+    setUser(null);
+    setLocationStatus({
+      supported: false,
+      active: false,
+      lastPosition: null,
+      permissionStatus: 'prompt',
+      watchId: null
+    });
+    
+    // Login sayfasına yönlendir
+    router.push('/portal/login');
+  };
 
   if (loading) {
     return (
