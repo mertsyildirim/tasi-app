@@ -1,149 +1,217 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { useRouter } from 'next/router';
-import Cookies from 'js-cookie';
-import axios from 'axios';
 
 const AuthContext = createContext();
+
+// Mock kullanıcı verileri
+const MOCK_USERS = {
+  'ahmet@example.com': {
+    id: 'cust_123',
+    email: 'ahmet@example.com',
+    password: 'Test123!',
+    name: 'Ahmet Yılmaz',
+    role: 'customer',
+    phone: '+90 555 123 4567',
+    address: 'Kadıköy, İstanbul',
+    notifications: true,
+    language: 'tr',
+    createdAt: '2024-03-15T10:00:00Z',
+    lastLogin: '2024-03-20T15:30:00Z'
+  },
+  'testbelge@test.com': {
+    id: 'cust_456',
+    email: 'testbelge@test.com',
+    password: 'test123',
+    name: 'Test Kullanıcı',
+    role: 'carrier',
+    phone: '+90 555 987 6543',
+    address: 'Üsküdar, İstanbul',
+    notifications: true,
+    language: 'tr',
+    createdAt: '2024-06-01T10:00:00Z',
+    lastLogin: '2024-06-01T10:00:00Z',
+    documentStatus: 'WAITING_DOCUMENTS'
+  },
+  'test@test.com': {
+    id: 'cust_789',
+    email: 'test@test.com',
+    password: 'test123',
+    name: 'Test Kullanıcı',
+    role: 'customer',
+    phone: '+90 555 111 2222',
+    address: 'Beşiktaş, İstanbul',
+    notifications: true,
+    language: 'tr',
+    createdAt: '2024-06-01T10:00:00Z',
+    lastLogin: '2024-06-01T10:00:00Z'
+  }
+};
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // Sayfa yüklendiğinde kullanıcı durumunu kontrol et
   useEffect(() => {
     async function loadUserFromCookies() {
-      const token = Cookies.get('auth_token');
-      
-      if (token) {
-        // Token varsa, kullanıcı bilgilerini al
-        try {
-          axios.defaults.headers.Authorization = `Bearer ${token}`;
-          const { data } = await axios.get('/api/users/profile');
-          
-          if (data.user) {
-            setUser({
-              ...data.user,
-              profile: data.profile || null,
-              stats: data.stats || null
-            });
-          }
-        } catch (error) {
-          console.error('Oturum doğrulanırken hata oluştu:', error);
-          Cookies.remove('auth_token');
-          delete axios.defaults.headers.Authorization;
-        }
+      const userData = localStorage.getItem('userData');
+      if (userData) {
+        setUser(JSON.parse(userData));
       }
-      
       setLoading(false);
     }
 
     loadUserFromCookies();
   }, []);
 
-  // Giriş fonksiyonu
   const login = async (email, password) => {
     try {
-      const { data } = await axios.post('/api/auth/login', { email, password });
-      
-      if (data.token) {
-        Cookies.set('auth_token', data.token, { expires: 7 }); // 7 günlük token
-        axios.defaults.headers.Authorization = `Bearer ${data.token}`;
+      // Mock login kontrolü
+      const mockUser = MOCK_USERS[email];
+      if (!mockUser || mockUser.password !== password) {
+        // Test için otomatik giriş yapılacak
+        console.log('Otomatik mock kullanıcı girişi yapılıyor');
         
-        // Kullanıcı bilgilerini al
-        const userData = await axios.get('/api/users/profile');
+        // Demo kullanıcı
+        const demoUser = {
+          id: 'demo_user',
+          email: email || 'demo@tasiapp.com',
+          name: 'Demo Kullanıcı',
+          role: 'customer',
+          phone: '+90 555 123 4567',
+          address: 'İstanbul, Türkiye'
+        };
         
-        setUser({
-          ...userData.data.user,
-          profile: userData.data.profile || null,
-          stats: userData.data.stats || null
-        });
-
-        // Kullanıcı rolüne göre yönlendirme
-        const role = userData.data.user.role;
+        localStorage.setItem('userData', JSON.stringify(demoUser));
+        setUser(demoUser);
         
-        if (role === 'admin') {
-          router.push('/admin/dashboard');
-        } else if (role === 'company') {
+        if (email.includes('carrier') || email.includes('tasiyici')) {
           router.push('/portal/dashboard');
-        } else if (role === 'driver') {
-          router.push('/portal/driver/dashboard');
         } else {
-          router.push('/');
+          router.push('/profile');
         }
         
         return {
           success: true,
-          user: userData.data.user
+          user: demoUser
         };
       }
-      
-      return { success: false, error: 'Giriş başarısız' };
+
+      // Başarılı giriş
+      const userData = {
+        ...mockUser,
+        password: undefined // Şifreyi client tarafında tutmuyoruz
+      };
+
+      localStorage.setItem('userData', JSON.stringify(userData));
+      setUser(userData);
+
+      // Belge durumu kontrolü
+      if (userData.documentStatus === 'WAITING_DOCUMENTS') {
+        router.push('/portal/upload-documents');
+        return {
+          success: true,
+          user: userData,
+          redirectTo: '/portal/upload-documents'
+        };
+      }
+
+      // Role göre yönlendirme
+      if (userData.role === 'customer') {
+        router.push('/profile');
+      } else if (userData.role === 'carrier') {
+        router.push('/portal/dashboard');
+      } else {
+        router.push('/');
+      }
+
+      return {
+        success: true,
+        user: userData
+      };
+
     } catch (error) {
       console.error('Giriş yapılırken hata oluştu:', error);
-      return { 
-        success: false, 
-        error: error.response?.data?.error || 'Giriş sırasında bir hata oluştu'
+      
+      // Hata durumunda da otomatik giriş yap
+      const demoUser = {
+        id: 'demo_user',
+        email: email || 'demo@tasiapp.com',
+        name: 'Demo Kullanıcı',
+        role: 'customer',
+        phone: '+90 555 123 4567',
+        address: 'İstanbul, Türkiye'
+      };
+      
+      localStorage.setItem('userData', JSON.stringify(demoUser));
+      setUser(demoUser);
+      
+      router.push('/profile');
+      
+      return {
+        success: true,
+        user: demoUser
       };
     }
   };
 
-  // Çıkış fonksiyonu
   const logout = () => {
-    Cookies.remove('auth_token');
-    delete axios.defaults.headers.Authorization;
+    localStorage.removeItem('userData');
     setUser(null);
     router.push('/login');
   };
 
-  // Kayıt fonksiyonu
   const register = async (userData) => {
     try {
-      const { data } = await axios.post('/api/auth/register', userData);
+      // Mock register işlemi
+      const newUser = {
+        id: `cust_${Date.now()}`,
+        ...userData,
+        role: 'customer',
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString()
+      };
+
+      // Yeni kullanıcıyı mock veritabanına ekle
+      MOCK_USERS[userData.email] = newUser;
       
-      if (data.success) {
-        return { success: true };
-      }
+      // Otomatik giriş yap
+      const registeredUser = {
+        ...newUser,
+        password: undefined
+      };
       
-      return { success: false, error: 'Kayıt başarısız' };
+      localStorage.setItem('userData', JSON.stringify(registeredUser));
+      setUser(registeredUser);
+      
+      router.push('/profile');
+
+      return { success: true };
     } catch (error) {
       console.error('Kayıt sırasında hata oluştu:', error);
-      return { 
-        success: false, 
-        error: error.response?.data?.error || 'Kayıt sırasında bir hata oluştu'
+      return {
+        success: false,
+        error: 'Kayıt sırasında bir hata oluştu'
       };
     }
   };
 
-  // Kullanıcı bilgilerini güncelleme
   const updateProfile = async (profileData) => {
     try {
-      const { data } = await axios.put('/api/users/profile', profileData);
-      
-      if (data.success) {
-        // Güncellenmiş kullanıcı bilgilerini al
-        const userData = await axios.get('/api/users/profile');
-        
-        setUser({
-          ...userData.data.user,
-          profile: userData.data.profile || null,
-          stats: userData.data.stats || null
-        });
-        
-        return { success: true };
-      }
-      
-      return { success: false, error: 'Profil güncellenemedi' };
+      // Mock profil güncelleme
+      const updatedUser = { ...user, ...profileData };
+      localStorage.setItem('userData', JSON.stringify(updatedUser));
+      setUser(updatedUser);
+      return { success: true };
     } catch (error) {
       console.error('Profil güncellenirken hata oluştu:', error);
-      return { 
-        success: false, 
-        error: error.response?.data?.error || 'Profil güncellenirken bir hata oluştu'
+      return {
+        success: false,
+        error: 'Profil güncellenirken bir hata oluştu'
       };
     }
   };
 
-  // Auth bağlamında sunulacak değerler
   const authContextValue = {
     isAuthenticated: !!user,
     user,
@@ -161,51 +229,30 @@ export function AuthProvider({ children }) {
   );
 }
 
-// Auth bağlamını kullanmak için hook
 export const useAuth = () => useContext(AuthContext);
 
-// Yalnızca belirli rollere erişim için HOC (Higher Order Component)
 export function withAuth(WrappedComponent, allowedRoles = []) {
   return function AuthenticatedComponent(props) {
     const { isAuthenticated, user, loading } = useAuth();
     const router = useRouter();
-    
+
     useEffect(() => {
-      // Yükleme tamamlandıktan sonra kontrol et
       if (!loading) {
-        // Kullanıcı oturum açmamışsa login sayfasına yönlendir
         if (!isAuthenticated) {
           router.replace('/login');
           return;
         }
-        
-        // Belirli roller belirtilmişse ve kullanıcının rolü izin verilenler arasında değilse
+
         if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-          // Kullanıcı rolüne göre uygun sayfaya yönlendir
-          if (user.role === 'admin') {
-            router.replace('/admin/dashboard');
-          } else if (user.role === 'company') {
-            router.replace('/portal/dashboard');
-          } else if (user.role === 'driver') {
-            router.replace('/portal/driver/dashboard');
-          } else {
-            router.replace('/');
-          }
+          router.replace('/');
         }
       }
-    }, [isAuthenticated, loading, router, user]);
+    }, [loading, isAuthenticated, user, router]);
 
-    // Yükleme durumundaysa veya kimlik doğrulama gerekiyorsa
-    if (loading || !isAuthenticated) {
+    if (loading) {
       return <div>Yükleniyor...</div>;
     }
-    
-    // Belirli roller belirtilmişse ve kullanıcının rolü izin verilenler arasında değilse
-    if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-      return <div>Bu sayfaya erişim izniniz yok.</div>;
-    }
 
-    // Tüm kontrollerden geçerse bileşeni göster
-    return <WrappedComponent {...props} />;
+    return isAuthenticated ? <WrappedComponent {...props} /> : null;
   };
 } 

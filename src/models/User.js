@@ -1,51 +1,99 @@
 const mongoose = require('mongoose');
 
-// Kullanıcı için şema oluşturulması
+// Profil alt şeması
+const profileSchema = new mongoose.Schema({
+  avatarUrl: {
+    type: String,
+    default: '/profile-pics/default.png'
+  },
+  bio: {
+    type: String,
+    default: ''
+  },
+  completedOrders: {
+    type: Number,
+    default: 0
+  },
+  rating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5
+  }
+});
+
+// Kullanıcı şeması
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true,
+    required: [true, 'İsim alanı zorunludur'],
     trim: true,
   },
   email: {
     type: String,
-    required: true,
+    required: [true, 'E-posta alanı zorunludur'],
     unique: true,
     lowercase: true,
     trim: true,
   },
   password: {
     type: String,
-    required: true,
+    required: [true, 'Şifre alanı zorunludur'],
   },
   phone: {
     type: String,
-    required: false,
     trim: true,
   },
-  role: {
-    type: String,
-    enum: ['admin', 'user'],
-    default: 'user',
+  roles: {
+    type: [String],
+    enum: ['admin', 'customer', 'company', 'driver'],
+    default: ['customer']
   },
   companyName: {
     type: String,
-    required: false,
     trim: true,
   },
   address: {
     type: String,
-    required: false,
     trim: true,
   },
   taxNumber: {
     type: String,
-    required: false,
+    trim: true,
+  },
+  taxOffice: {
+    type: String,
     trim: true,
   },
   isActive: {
     type: Boolean,
     default: true,
+  },
+  isFreelance: {
+    type: Boolean,
+    default: false,
+  },
+  documentStatus: {
+    type: String,
+    enum: ['NOT_SUBMITTED', 'WAITING_DOCUMENTS', 'UNDER_REVIEW', 'APPROVED', 'REJECTED'],
+    default: 'NOT_SUBMITTED'
+  },
+  profile: {
+    type: profileSchema,
+    default: () => ({})
+  },
+  notifications: {
+    type: Boolean,
+    default: true
+  },
+  language: {
+    type: String,
+    enum: ['tr', 'en'],
+    default: 'tr'
+  },
+  billingAddress: {
+    type: String,
+    trim: true,
   },
   createdAt: {
     type: Date,
@@ -54,7 +102,19 @@ const userSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now,
-  },
+  }
+});
+
+// Güncelleme öncesi updatedAt alanını güncelle
+userSchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+  next();
+});
+
+// Güncelleme öncesi updatedAt alanını güncelle
+userSchema.pre('findOneAndUpdate', function(next) {
+  this._update.updatedAt = new Date();
+  next();
 });
 
 // Mongoose models kısmında User modeli zaten tanımlı mı diye kontrol ediyoruz

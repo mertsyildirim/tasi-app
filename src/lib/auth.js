@@ -3,94 +3,94 @@ import { useRouter } from 'next/router';
 import Cookies from 'js-cookie';
 import axios from 'axios';
 
-const AuthContext = createContext();
+const AuthContext = createContext({});
+
+// Axios için default authorization header ayarla
+const setAxiosAuthHeader = (token) => {
+  if (token) {
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete axios.defaults.headers.common['Authorization'];
+  }
+};
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // Sayfa yüklendiğinde kullanıcı durumunu kontrol et
   useEffect(() => {
-    async function loadUserFromCookies() {
-      const token = Cookies.get('auth_token');
-      
-      if (token) {
-        // Token varsa, kullanıcı bilgilerini al
-        try {
-          axios.defaults.headers.Authorization = `Bearer ${token}`;
-          const { data } = await axios.get('/api/users/profile');
-          
-          if (data.user) {
-            setUser({
-              ...data.user,
-              profile: data.profile || null,
-              stats: data.stats || null
-            });
-          }
-        } catch (error) {
-          console.error('Oturum doğrulanırken hata oluştu:', error);
-          Cookies.remove('auth_token');
-          delete axios.defaults.headers.Authorization;
-        }
-      }
-      
-      setLoading(false);
-    }
-
     loadUserFromCookies();
   }, []);
 
-  // Giriş fonksiyonu
+  const loadUserFromCookies = async () => {
+    try {
+      const token = Cookies.get('auth');
+      if (token) {
+        axios.defaults.headers.Authorization = `Bearer ${token}`;
+        try {
+          const { data } = await axios.get('/api/users/profile');
+          if (data) setUser(data);
+        } catch (error) {
+          console.error('Profile yüklenirken hata:', error);
+          Cookies.remove('auth');
+          delete axios.defaults.headers.Authorization;
+        }
+      }
+      setLoading(false);
+    } catch (error) {
+      console.error('Token yüklenirken hata:', error);
+      Cookies.remove('auth');
+      delete axios.defaults.headers.Authorization;
+      setLoading(false);
+    }
+  };
+
   const login = async (email, password) => {
     try {
       const { data } = await axios.post('/api/auth/login', { email, password });
       
-      if (data.token) {
-        Cookies.set('auth_token', data.token, { expires: 7 }); // 7 günlük token
-        axios.defaults.headers.Authorization = `Bearer ${data.token}`;
+      if (data.success) {
+        setUser(data.user);
         
-        // Kullanıcı bilgilerini al
-        const userData = await axios.get('/api/users/profile');
-        
-        setUser({
-          ...userData.data.user,
-          profile: userData.data.profile || null,
-          stats: userData.data.stats || null
-        });
-
-        // Kullanıcı rolüne göre yönlendirme
-        const role = userData.data.user.role;
-        
-        if (role === 'admin') {
-          router.push('/admin/dashboard');
-        } else if (role === 'company') {
-          router.push('/portal/dashboard');
-        } else if (role === 'driver') {
-          router.push('/portal/driver/dashboard');
-        } else {
-          router.push('/');
+        // Token cookie'ye otomatik olarak kaydedildi, sadece axios header'ını ayarlıyoruz
+        const token = Cookies.get('auth');
+        if (token) {
+          axios.defaults.headers.Authorization = `Bearer ${token}`;
         }
         
-        return {
-          success: true,
-          user: userData.data.user
-        };
+        // Role göre yönlendirme
+        switch (data.user.role) {
+          case 'super_admin':
+          case 'editor':
+          case 'support':
+            router.push('/admin');
+            break;
+          case 'carrier':
+            router.push('/portal');
+            break;
+          case 'driver':
+            router.push('/portal');
+            break;
+          default:
+            router.push('/profile');
+        }
+        
+        return { success: true };
+      } else {
+        return { success: false, message: data.message };
       }
-      
-      return { success: false, error: 'Giriş başarısız' };
     } catch (error) {
-      console.error('Giriş yapılırken hata oluştu:', error);
+      console.error('Login error:', error);
       return { 
         success: false, 
-        error: error.response?.data?.error || 'Giriş sırasında bir hata oluştu'
+        message: error.response?.data?.message || 'Giriş yapılırken bir hata oluştu'
       };
     }
   };
 
-  // Çıkış fonksiyonu
   const logout = () => {
-    Cookies.remove('auth_token');
+    Cookies.remove('auth');
     delete axios.defaults.headers.Authorization;
     setUser(null);
     router.push('/login');
@@ -165,47 +165,42 @@ export function AuthProvider({ children }) {
 export const useAuth = () => useContext(AuthContext);
 
 // Yalnızca belirli rollere erişim için HOC (Higher Order Component)
-export function withAuth(WrappedComponent, allowedRoles = []) {
+export function withAuth(Component, allowedRoles = []) {
   return function AuthenticatedComponent(props) {
-    const { isAuthenticated, user, loading } = useAuth();
+    const { user, loading } = useAuth();
     const router = useRouter();
-    
+
     useEffect(() => {
-      // Yükleme tamamlandıktan sonra kontrol et
       if (!loading) {
-        // Kullanıcı oturum açmamışsa login sayfasına yönlendir
-        if (!isAuthenticated) {
-          router.replace('/login');
+        // Kullanıcı girişi yapılmadıysa login sayfasına yönlendir
+        if (!user) {
+          router.push('/login');
           return;
         }
         
-        // Belirli roller belirtilmişse ve kullanıcının rolü izin verilenler arasında değilse
-        if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-          // Kullanıcı rolüne göre uygun sayfaya yönlendir
-          if (user.role === 'admin') {
-            router.replace('/admin/dashboard');
-          } else if (user.role === 'company') {
-            router.replace('/portal/dashboard');
-          } else if (user.role === 'driver') {
-            router.replace('/portal/driver/dashboard');
-          } else {
-            router.replace('/');
+        // Rol kontrolü - izin verilen roller belirtilmişse ve kullanıcının rolü bu listede değilse
+        if (allowedRoles.length > 0) {
+          // Kullanıcının rolu
+          const userRole = user.role || '';
+          // Kullanıcının rolleri (eğer varsa)
+          const userRoles = user.roles || [userRole];
+          
+          // Kullanıcının herhangi bir rolü izin verilen rollerden biriyse erişime izin ver
+          const hasAllowedRole = userRoles.some(role => allowedRoles.includes(role)) || allowedRoles.includes(userRole);
+          
+          if (!hasAllowedRole) {
+            console.log('Yetkisiz erişim. İzin verilen roller:', allowedRoles, 'Kullanıcı rolleri:', userRoles, 'Kullanıcı rolü:', userRole);
+            // Yetkisiz erişimde ana sayfaya yönlendir
+            router.push('/');
           }
         }
       }
-    }, [isAuthenticated, loading, router, user]);
+    }, [loading, user, router]);
 
-    // Yükleme durumundaysa veya kimlik doğrulama gerekiyorsa
-    if (loading || !isAuthenticated) {
+    if (loading) {
       return <div>Yükleniyor...</div>;
     }
-    
-    // Belirli roller belirtilmişse ve kullanıcının rolü izin verilenler arasında değilse
-    if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-      return <div>Bu sayfaya erişim izniniz yok.</div>;
-    }
 
-    // Tüm kontrollerden geçerse bileşeni göster
-    return <WrappedComponent {...props} />;
+    return user ? <Component {...props} /> : null;
   };
 } 

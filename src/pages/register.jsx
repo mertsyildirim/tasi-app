@@ -3,8 +3,14 @@
 import React, { useState } from 'react'
 import { FaGoogle, FaFacebook } from 'react-icons/fa'
 import Link from 'next/link'
+import { useRouter } from 'next/router'
+import { useAuth } from '../lib/auth-context'
+import Head from 'next/head'
 
 const Register = () => {
+  const router = useRouter();
+  const { register } = useAuth();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -22,14 +28,38 @@ const Register = () => {
     }))
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    // Kayıt işlemleri burada yapılacak
-    console.log('Form Data:', formData)
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      // Mock kayıt işlemi
+      console.log('Mock kayıt yapılıyor:', formData);
+      
+      // Register fonksiyonunu çağır
+      const userData = {
+        email: formData.email,
+        password: formData.password,
+        name: `${formData.firstName} ${formData.lastName}`
+      };
+      
+      await register(userData);
+      
+      // Başarılı kayıt sonrası yönlendirme işlemi auth-context içinde yapılıyor
+      
+    } catch (error) {
+      console.error('Kayıt hatası:', error);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <Head>
+        <title>Kayıt Ol | Taşı.app</title>
+        <meta name="description" content="Taşı.app kayıt sayfası" />
+      </Head>
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
@@ -56,6 +86,7 @@ const Register = () => {
                   placeholder="Ad"
                   value={formData.firstName}
                   onChange={handleChange}
+                  disabled={loading}
                 />
               </div>
               <div>
@@ -69,6 +100,7 @@ const Register = () => {
                   placeholder="Soyad"
                   value={formData.lastName}
                   onChange={handleChange}
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -84,6 +116,7 @@ const Register = () => {
                 placeholder="Email adresi"
                 value={formData.email}
                 onChange={handleChange}
+                disabled={loading}
               />
             </div>
             <div>
@@ -97,6 +130,7 @@ const Register = () => {
                 placeholder="Şifre"
                 value={formData.password}
                 onChange={handleChange}
+                disabled={loading}
               />
             </div>
             <div>
@@ -110,6 +144,7 @@ const Register = () => {
                 placeholder="Şifre Tekrar"
                 value={formData.confirmPassword}
                 onChange={handleChange}
+                disabled={loading}
               />
             </div>
           </div>
@@ -123,6 +158,7 @@ const Register = () => {
               className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
               checked={formData.agreeToTerms}
               onChange={handleChange}
+              disabled={loading}
             />
             <label htmlFor="agreeToTerms" className="ml-2 block text-sm text-gray-900">
               <Link href="/terms" className="text-orange-600 hover:text-orange-500">Kullanım Koşulları</Link>nı kabul ediyorum
@@ -132,9 +168,12 @@ const Register = () => {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+              className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
+                loading ? 'bg-orange-400' : 'bg-orange-600 hover:bg-orange-700'
+              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500`}
+              disabled={loading}
             >
-              Hesap Oluştur
+              {loading ? 'Hesap Oluşturuluyor...' : 'Hesap Oluştur'}
             </button>
           </div>
 
@@ -152,6 +191,7 @@ const Register = () => {
               <button
                 type="button"
                 className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                disabled={loading}
               >
                 <FaGoogle className="w-5 h-5 text-red-500" />
                 <span className="ml-2">Google</span>
@@ -160,6 +200,7 @@ const Register = () => {
               <button
                 type="button"
                 className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                disabled={loading}
               >
                 <FaFacebook className="w-5 h-5 text-blue-600" />
                 <span className="ml-2">Facebook</span>

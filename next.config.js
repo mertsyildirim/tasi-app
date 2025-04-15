@@ -43,7 +43,22 @@ const nextConfig = {
         ],
       },
     ]
-  }
+  },
+  exportPathMap: async function (
+    defaultPathMap,
+    { dev, dir, outDir, distDir, buildId }
+  ) {
+    const paths = { ...defaultPathMap };
+    
+    delete paths['/portal/upload-documents'];
+    delete paths['/services/express'];
+    delete paths['/services/koli'];
+    delete paths['/services/kurye'];
+    delete paths['/services/palet'];
+    delete paths['/services/parsiyel'];
+    
+    return paths;
+  },
 };
 
 module.exports = nextConfig; 

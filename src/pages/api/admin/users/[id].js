@@ -1,307 +1,152 @@
-import { connectToDatabase } from '@/lib/mongodb';
-import { authMiddleware } from '@/middleware/auth';
+import { getSession } from 'next-auth/react';
+import { connectToDatabase } from '../../../../lib/db';
 import { ObjectId } from 'mongodb';
-import bcrypt from 'bcryptjs';
 
 export default async function handler(req, res) {
-  try {
-    await authMiddleware(req, res, async () => {
-      // Yalnızca admin erişebilir
-      if (req.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Bu işlem için yetkiniz bulunmamaktadır' });
+  // Session kontrolü
+  const session = await getSession({ req });
+  
+  if (!session || session.user.role !== 'admin') {
+    return res.status(401).json({ error: 'Bu işlem için yetkiniz bulunmamaktadır.' });
       }
 
-      const { method } = req;
-      const { db } = await connectToDatabase();
-
-      switch (method) {
-        case 'GET':
-          return await getUser(req, res, db);
-        case 'PUT':
-          return await updateUser(req, res, db);
-        case 'DELETE':
-          return await deleteUser(req, res, db);
-        default:
-          res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
-          return res.status(405).json({ error: `Method ${method} not allowed` });
-      }
-    });
-  } catch (error) {
-    console.error('Admin user API error:', error);
-    return res.status(500).json({ error: 'Sunucu hatası' });
-  }
-}
-
-// Kullanıcı bilgilerini getir
-async function getUser(req, res, db) {
-  try {
+  // ID kontrolü
     const { id } = req.query;
-    
-    if (!ObjectId.isValid(id)) {
+  if (!id || !ObjectId.isValid(id)) {
       return res.status(400).json({ error: 'Geçersiz kullanıcı ID' });
     }
     
-    const user = await db.collection('users').findOne({
-      _id: new ObjectId(id)
-    }, {
-      projection: { password: 0 } // Şifreyi gönderme
-    });
+  // Veritabanı bağlantısı
+  let client;
+
+  try {
+    client = await connectToDatabase();
+    const db = client.db();
+    const usersCollection = db.collection('users');
+    
+    // GET isteği - Kullanıcı detaylarını getir
+    if (req.method === 'GET') {
+      const user = await usersCollection.findOne(
+        { _id: new ObjectId(id) },
+        { projection: { password: 0 } } // Şifreyi dahil etme
+      );
     
     if (!user) {
       return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
     }
     
-    // Kullanıcı rolüne göre ek bilgileri getir
-    let additionalData = null;
-    
-    if (user.role === 'company' && user.companyId) {
-      additionalData = await db.collection('companies').findOne({
-        _id: new ObjectId(user.companyId)
-      });
-    } else if (user.role === 'driver' && user.driverId) {
-      additionalData = await db.collection('drivers').findOne({
-        _id: new ObjectId(user.driverId)
-      });
+      return res.status(200).json({ user });
     }
     
-    return res.status(200).json({
-      user,
-      additionalData
-    });
-  } catch (error) {
-    console.error('Get user error:', error);
-    return res.status(500).json({ error: 'Kullanıcı bilgileri getirilirken hata oluştu' });
-  }
-}
-
-// Kullanıcı bilgilerini güncelle
-async function updateUser(req, res, db) {
-  try {
-    const { id } = req.query;
-    const updateData = req.body;
-    
-    if (!ObjectId.isValid(id)) {
-      return res.status(400).json({ error: 'Geçersiz kullanıcı ID' });
-    }
-    
-    // Kullanıcıyı kontrol et
-    const user = await db.collection('users').findOne({
-      _id: new ObjectId(id)
-    });
-    
-    if (!user) {
-      return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
-    }
-    
-    // Email değişikliği varsa kontrol et
-    if (updateData.email && updateData.email !== user.email) {
-      const existingUser = await db.collection('users').findOne({
-        email: updateData.email,
-        _id: { $ne: new ObjectId(id) }
-      });
+    // PUT isteği - Kullanıcı bilgilerini güncelle
+    if (req.method === 'PUT') {
+      const { name, surname, email, phone, role, status, company, password } = req.body;
       
-      if (existingUser) {
-        return res.status(400).json({ error: 'Bu email adresi başka bir kullanıcı tarafından kullanılıyor' });
-      }
+      // Kullanıcıyı bul
+      const existingUser = await usersCollection.findOne({ _id: new ObjectId(id) });
+      
+      if (!existingUser) {
+        return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
     }
     
-    // Güncelleme verilerini hazırla
-    const userUpdate = {
-      $set: {
-        updatedAt: new Date()
+      // E-posta değişmişse, benzersiz olduğunu kontrol et
+      if (email && email !== existingUser.email) {
+        const emailExists = await usersCollection.findOne({ 
+          email, 
+          _id: { $ne: new ObjectId(id) } 
+        });
+    
+        if (emailExists) {
+          return res.status(400).json({ error: 'Bu e-posta adresi başka bir kullanıcı tarafından kullanılıyor.' });
+        }
       }
-    };
-    
-    // İzin verilen alanları güncelle
-    const allowedFields = ['name', 'surname', 'email', 'phone', 'status', 'role'];
-    
-    allowedFields.forEach(field => {
-      if (updateData[field] !== undefined) {
-        userUpdate.$set[field] = updateData[field];
+      
+      // Şirket hesabı için şirket adı zorunlu
+      if (role === 'company' && (!company || !company.name)) {
+        return res.status(400).json({ error: 'Şirket hesabı için şirket adı zorunludur.' });
       }
-    });
-    
-    // Şifre değişikliği
-    if (updateData.password) {
-      userUpdate.$set.password = await bcrypt.hash(updateData.password, 10);
-    }
-    
-    // Kullanıcıyı güncelle
-    const result = await db.collection('users').updateOne(
-      { _id: new ObjectId(id) },
-      userUpdate
-    );
-    
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ error: 'Kullanıcı güncellenemedi' });
-    }
-    
-    // Role göre ek bilgileri güncelle
-    if (user.role === 'company' && user.companyId && updateData.company) {
-      const companyUpdate = {
+      
+      // Güncelleme verilerini hazırla
+      const updateData = {
         $set: {
+          name: name || existingUser.name,
+          surname: surname || existingUser.surname,
+          email: email || existingUser.email,
+          phone: phone || existingUser.phone,
+          role: role || existingUser.role,
+          status: status || existingUser.status,
+          company: role === 'company' ? {
+            name: company?.name || existingUser.company?.name || '',
+            taxNumber: company?.taxNumber || existingUser.company?.taxNumber || '',
+            address: company?.address || existingUser.company?.address || '',
+            phone: company?.phone || existingUser.company?.phone || ''
+          } : null,
           updatedAt: new Date()
         }
       };
       
-      // Şirket alanlarını güncelle
-      const companyFields = ['name', 'email', 'phone', 'address', 'website', 'taxNumber', 'contactPerson', 'status'];
-      
-      companyFields.forEach(field => {
-        if (updateData.company[field] !== undefined) {
-          companyUpdate.$set[field] = updateData.company[field];
+      // Şifre güncellemesi isteniyorsa
+      if (password && password.trim() !== '') {
+        // Şifre güvenliği kontrolü
+        if (password.length < 6) {
+          return res.status(400).json({ error: 'Şifre en az 6 karakter uzunluğunda olmalıdır.' });
         }
-      });
-      
-      if (Object.keys(companyUpdate.$set).length > 1) {
-        await db.collection('companies').updateOne(
-          { _id: new ObjectId(user.companyId) },
-          companyUpdate
-        );
-      }
-    } else if (user.role === 'driver' && user.driverId && updateData.driver) {
-      const driverUpdate = {
-        $set: {
-          updatedAt: new Date()
-        }
-      };
-      
-      // Sürücü alanlarını güncelle
-      const driverFields = ['name', 'surname', 'email', 'phone', 'address', 'licenseInfo', 'birthDate', 'emergencyContact', 'status'];
-      
-      driverFields.forEach(field => {
-        if (updateData.driver[field] !== undefined) {
-          if (field === 'birthDate' && updateData.driver[field]) {
-            driverUpdate.$set[field] = new Date(updateData.driver[field]);
-          } else {
-            driverUpdate.$set[field] = updateData.driver[field];
+        
+        const bcrypt = require('bcryptjs');
+        const salt = await bcrypt.genSalt(10);
+        updateData.$set.password = await bcrypt.hash(password, salt);
           }
-        }
-      });
       
-      // Sürücünün bağlı olduğu şirketi değiştir
-      if (updateData.driver.companyId && ObjectId.isValid(updateData.driver.companyId)) {
-        driverUpdate.$set.companyId = new ObjectId(updateData.driver.companyId);
-      }
+      // Kullanıcıyı güncelle
+      await usersCollection.updateOne(
+        { _id: new ObjectId(id) },
+        updateData
+      );
       
-      if (Object.keys(driverUpdate.$set).length > 1) {
-        await db.collection('drivers').updateOne(
-          { _id: new ObjectId(user.driverId) },
-          driverUpdate
+      // Güncellenmiş kullanıcıyı getir (şifre hariç)
+      const updatedUser = await usersCollection.findOne(
+        { _id: new ObjectId(id) },
+        { projection: { password: 0 } }
         );
-      }
-    }
     
     return res.status(200).json({
       success: true,
-      message: 'Kullanıcı başarıyla güncellendi'
-    });
-  } catch (error) {
-    console.error('Update user error:', error);
-    return res.status(500).json({ error: 'Kullanıcı güncellenirken hata oluştu' });
-  }
+        message: 'Kullanıcı başarıyla güncellendi',
+        user: updatedUser
+      });
 }
 
-// Kullanıcıyı sil
-async function deleteUser(req, res, db) {
-  try {
-    const { id } = req.query;
-    
-    if (!ObjectId.isValid(id)) {
-      return res.status(400).json({ error: 'Geçersiz kullanıcı ID' });
-    }
-    
-    // Kullanıcıyı kontrol et
-    const user = await db.collection('users').findOne({
-      _id: new ObjectId(id)
-    });
+    // DELETE isteği - Kullanıcıyı sil
+    if (req.method === 'DELETE') {
+      // Kullanıcıyı bul
+      const user = await usersCollection.findOne({ _id: new ObjectId(id) });
     
     if (!user) {
       return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
     }
     
-    // Admin kullanıcısı siliniyor mu?
-    if (user.role === 'admin') {
-      // En az bir admin kullanıcısı olmalı
-      const adminCount = await db.collection('users').countDocuments({ role: 'admin' });
-      
-      if (adminCount <= 1) {
-        return res.status(400).json({ error: 'Son admin kullanıcısı silinemez' });
-      }
+      // Eğer admin kendi hesabını silmeye çalışıyorsa engelle
+      if (session.user.email === user.email) {
+        return res.status(400).json({ error: 'Kendi hesabınızı silemezsiniz.' });
     }
     
-    // Role göre ilişkili kayıtları kontrol et
-    if (user.role === 'company' && user.companyId) {
-      // Şirketin aktif taşıması var mı?
-      const activeTransport = await db.collection('transport_requests').findOne({
-        transportCompanyId: new ObjectId(user.companyId),
-        status: { $in: ['accepted', 'in_progress'] }
-      });
-      
-      if (activeTransport) {
-        return res.status(400).json({ error: 'Aktif taşıma isteği olan şirket silinemez' });
-      }
-      
-      // İlişkili kayıtları sil/güncelle
-      await Promise.all([
-        // Şirketi sil
-        db.collection('companies').updateOne(
-          { _id: new ObjectId(user.companyId) },
-          { $set: { status: 'deleted', updatedAt: new Date() } }
-        ),
-        
-        // Şirketin sürücülerini güncelle
-        db.collection('drivers').updateMany(
-          { companyId: new ObjectId(user.companyId) },
-          { $set: { status: 'inactive', updatedAt: new Date() } }
-        ),
-        
-        // Şirketin araçlarını güncelle
-        db.collection('vehicles').updateMany(
-          { companyId: new ObjectId(user.companyId) },
-          { $set: { status: 'inactive', updatedAt: new Date() } }
-        )
-      ]);
-    } else if (user.role === 'driver' && user.driverId) {
-      // Sürücünün aktif taşıması var mı?
-      const activeTransport = await db.collection('transport_requests').findOne({
-        driverId: new ObjectId(user.driverId),
-        status: { $in: ['accepted', 'in_progress'] }
-      });
-      
-      if (activeTransport) {
-        return res.status(400).json({ error: 'Aktif taşıma isteği olan sürücü silinemez' });
-      }
-      
-      // Sürücüyü sil
-      await db.collection('drivers').updateOne(
-        { _id: new ObjectId(user.driverId) },
-        { $set: { status: 'deleted', updatedAt: new Date() } }
-      );
-      
-      // Sürücünün araçlarını güncelle
-      await db.collection('vehicles').updateMany(
-        { driverId: new ObjectId(user.driverId) },
-        { $set: { driverId: null, updatedAt: new Date() } }
-      );
-    }
-    
-    // Kullanıcıyı sil (veya inaktif yap)
-    const result = await db.collection('users').updateOne(
-      { _id: new ObjectId(id) },
-      { $set: { status: 'deleted', updatedAt: new Date() } }
-    );
-    
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ error: 'Kullanıcı silinemedi' });
-    }
+      // Kullanıcıyı sil
+      await usersCollection.deleteOne({ _id: new ObjectId(id) });
     
     return res.status(200).json({
       success: true,
       message: 'Kullanıcı başarıyla silindi'
     });
+    }
+    
+    // Desteklenmeyen HTTP metodu
+    return res.status(405).json({ error: 'Method Not Allowed' });
   } catch (error) {
-    console.error('Delete user error:', error);
-    return res.status(500).json({ error: 'Kullanıcı silinirken hata oluştu' });
+    console.error('API Error:', error);
+    return res.status(500).json({ error: 'Sunucu hatası' });
+  } finally {
+    if (client) {
+      await client.close();
+    }
   }
 } 
