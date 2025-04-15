@@ -12,14 +12,12 @@ import {
   DirectionsRenderer 
 } from '@react-google-maps/api'
 import Link from 'next/link'
-import { useAuth } from '../../lib/auth-context'
 
 const libraries = ['places']
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
 
 export default function ExpressPage() {
   const router = useRouter()
-  const { isAuthenticated, user, logout } = useAuth();
   const [pickup, setPickup] = useState('')
   const [delivery, setDelivery] = useState('')
   const [pickupMarker, setPickupMarker] = useState(null)
@@ -33,6 +31,8 @@ export default function ExpressPage() {
   const [pickupError, setPickupError] = useState('')
   const [deliveryError, setDeliveryError] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
+  const [packageWeight, setPackageWeight] = useState(5)
+  const [packageSize, setPackageSize] = useState('medium') // small, medium, large
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
@@ -173,11 +173,6 @@ export default function ExpressPage() {
     }
   }
 
-  const handleLogout = () => {
-    logout();
-    router.push('/');
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -203,60 +198,36 @@ export default function ExpressPage() {
                 İletişim
               </Link>
               
-              {isAuthenticated ? (
-                <div className="flex items-center space-x-4">
-                  <Link 
-                    href="/profile" 
-                    className="px-4 py-2 text-sm font-medium text-orange-600 bg-white border border-orange-600 rounded-md hover:bg-orange-50"
-                  >
-                    Profilim
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-md hover:bg-orange-700"
-                  >
-                    Çıkış Yap
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <Link href="/login" className="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-md hover:bg-orange-700">
-                    Giriş Yap
-                  </Link>
-                  <Link href="/register" className="px-4 py-2 text-sm font-medium text-orange-600 bg-white border border-orange-600 rounded-md hover:bg-orange-50">
-                    Kayıt Ol
-                  </Link>
-                </div>
-              )}
+              <div className="flex items-center space-x-4">
+                <Link 
+                  href="/profile" 
+                  className="px-4 py-2 text-sm font-medium text-orange-600 bg-white border border-orange-600 rounded-md hover:bg-orange-50"
+                >
+                  Profilim
+                </Link>
+                <button
+                  className="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-md hover:bg-orange-700"
+                >
+                  Çıkış Yap
+                </button>
+              </div>
             </div>
             
             {/* Mobil Menü */}
             <div className="md:hidden flex items-center">
-              {isAuthenticated ? (
-                <div className="flex items-center space-x-2">
-                  <Link 
-                    href="/profile" 
-                    className="px-3 py-1.5 text-xs font-medium text-orange-600 bg-white border border-orange-600 rounded-md hover:bg-orange-50"
-                  >
-                    Profilim
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="px-3 py-1.5 text-xs font-medium text-white bg-orange-600 rounded-md hover:bg-orange-700"
-                  >
-                    Çıkış
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <Link href="/login" className="px-3 py-1.5 text-xs font-medium text-white bg-orange-600 rounded-md hover:bg-orange-700">
-                    Giriş Yap
-                  </Link>
-                  <Link href="/register" className="px-3 py-1.5 text-xs font-medium text-orange-600 bg-white border border-orange-600 rounded-md hover:bg-orange-50">
-                    Kayıt Ol
-                  </Link>
-                </div>
-              )}
+              <div className="flex items-center space-x-2">
+                <Link 
+                  href="/profile" 
+                  className="px-3 py-1.5 text-xs font-medium text-orange-600 bg-white border border-orange-600 rounded-md hover:bg-orange-50"
+                >
+                  Profilim
+                </Link>
+                <button
+                  className="px-3 py-1.5 text-xs font-medium text-white bg-orange-600 rounded-md hover:bg-orange-700"
+                >
+                  Çıkış
+                </button>
+              </div>
             </div>
           </div>
         </div>

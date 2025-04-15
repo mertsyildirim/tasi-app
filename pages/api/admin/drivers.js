@@ -92,7 +92,14 @@ async function getDrivers(req, res) {
     const filter = {};
     
     if (status) {
-      filter.status = status;
+      // Status değerlerini standardize et
+      if (status === 'active') {
+        filter.status = { $in: ['active', 'Aktif'] };
+      } else if (status === 'passive') {
+        filter.status = { $in: ['inactive', 'Pasif'] };
+      } else if (status === 'documents') {
+        filter.hasExpiredDocuments = true;
+      }
     }
     
     if (companyId) {

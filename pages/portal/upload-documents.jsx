@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { FaUpload, FaCheck, FaExclamationTriangle, FaFilePdf, FaFileImage, FaSpinner } from 'react-icons/fa';
-import { useAuth } from '../../lib/auth-context';
+import { FaUpload, FaCheck, FaExclamationTriangle, FaFilePdf, FaFileImage, FaSpinner, FaTimes } from 'react-icons/fa';
+import Link from 'next/link';
 
 const UploadDocumentsPage = () => {
   const router = useRouter();
-  const { user, isAuthenticated, loading, updateProfile } = useAuth();
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [previewUrls, setPreviewUrls] = useState([]);
   const [documents, setDocuments] = useState({
     taxCertificate: null,
     companyRegistration: null,
@@ -15,15 +19,6 @@ const UploadDocumentsPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    // Kullanıcı giriş yapmamışsa veya belge bekleyen durumunda değilse yönlendir
-    if (!loading && !isAuthenticated) {
-      router.push('/portal/login');
-    } else if (!loading && isAuthenticated && user?.documentStatus !== 'WAITING_DOCUMENTS') {
-      router.push('/portal/dashboard');
-    }
-  }, [loading, isAuthenticated, user, router]);
 
   const handleFileChange = (e) => {
     const { name, files } = e.target;
@@ -52,12 +47,7 @@ const UploadDocumentsPage = () => {
       // Mock bir işlem yapıyoruz
       console.log('Belgeler gönderiliyor:', documents);
       
-      setTimeout(async () => {
-        // Kullanıcı durumunu güncelle
-        await updateProfile({
-          documentStatus: 'WAITING_APPROVAL'
-        });
-        
+      setTimeout(() => {
         setSuccess(true);
         setSubmitting(false);
         
@@ -72,14 +62,6 @@ const UploadDocumentsPage = () => {
       setSubmitting(false);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <FaSpinner className="h-12 w-12 text-orange-500 animate-spin" />
-      </div>
-    );
-  }
 
   if (success) {
     return (
@@ -282,29 +264,25 @@ const UploadDocumentsPage = () => {
               </div>
             </div>
             
-            <div className="pt-4">
+            <div>
               <button
                 type="submit"
                 disabled={submitting}
-                className={`w-full flex justify-center items-center px-4 py-3 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 ${submitting ? 'opacity-75 cursor-not-allowed' : ''}`}
+                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 ${
+                  submitting ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
                 {submitting ? (
                   <>
-                    <FaSpinner className="animate-spin mr-2 h-4 w-4" />
+                    <FaSpinner className="animate-spin -ml-1 mr-3 h-5 w-5" />
                     Yükleniyor...
                   </>
                 ) : (
-                  'Belgeleri Yükle'
+                  'Belgeleri Gönder'
                 )}
               </button>
             </div>
           </form>
-          
-          <div className="px-4 py-4 bg-gray-50 text-right sm:px-6 border-t border-gray-200">
-            <p className="text-xs text-gray-500">
-              Şu anda belgelerinizi yükleyemiyorsanız, daha sonra giriş yaparak bu ekrandan yükleme yapabilirsiniz.
-            </p>
-          </div>
         </div>
       </div>
     </div>

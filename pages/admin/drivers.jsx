@@ -62,8 +62,8 @@ export default function DriversPage() {
   const [companies, setCompanies] = useState([]);
   const router = useRouter();
   
-  // Aktif sürücü sayısını tutmak için yeni state
-  const [activeDriversCount, setActiveDriversCount] = useState(0);
+  // Filtrelenmemiş tüm sürücüler
+  const [allDrivers, setAllDrivers] = useState([]);
   
   // Yeni sürücü veri yapısı
   const [newDriverData, setNewDriverData] = useState({
@@ -79,10 +79,7 @@ export default function DriversPage() {
     notes: ''
   });
   
-  // Tüm sürücü verilerini bir kez çekme işlemi
-  const [allDrivers, setAllDrivers] = useState([]);
-  
-  // Tüm sürücüleri bir kez getirme işlemi
+  // Tüm sürücüleri API'den çekme
   useEffect(() => {
     const fetchAllDrivers = async () => {
       try {
@@ -92,23 +89,28 @@ export default function DriversPage() {
           return;
         }
         
+        // API'den tüm sürücüleri çek (filtresiz)
         const response = await axios.get(`/api/admin/drivers`, {
           headers: {
             Authorization: `Bearer ${token}`
           },
           params: {
-            status: '',  // Tüm sürücüleri getirmek için boş
+            status: '',  // Filtresiz
             search: ''
           }
         });
         
         if (response.data && response.data.drivers) {
+          // API yanıtındaki sürücüleri formatlayarak ayarla
           const formattedDrivers = response.data.drivers.map(driver => ({
             ...driver,
+            // API'den gelen status format uyumsuzluğunu düzelt
             status: driver.status === 'active' ? 'Aktif' : 
                    driver.status === 'inactive' ? 'Pasif' : driver.status,
+            // Eksik alanlar için varsayılan değerler
             documents: [],
             hasExpiredDocuments: false,
+            // Taşımayla ilgili varsayılan değerler
             activeShipments: 0,
             completedShipments: 0
           }));
@@ -125,40 +127,7 @@ export default function DriversPage() {
     }
   }, [router]);
   
-  // Aktif sürücüleri getirme işlemi
-  useEffect(() => {
-    const fetchActiveDrivers = async () => {
-      try {
-        const token = localStorage.getItem('auth_token');
-        
-        if (!token) {
-          return;
-        }
-        
-        const response = await axios.get(`/api/admin/drivers`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          },
-          params: {
-            status: 'active',
-            search: ''
-          }
-        });
-        
-        if (response.data && response.data.drivers) {
-          setActiveDriversCount(response.data.drivers.length);
-        }
-      } catch (error) {
-        console.error('Aktif sürücüleri getirme hatası:', error);
-      }
-    };
-    
-    if (router) {
-      fetchActiveDrivers();
-    }
-  }, [router]);
-
-  // Sürücüleri API'den çekme (filtreli sonuçlar için)
+  // Sürücüleri API'den çekme
   useEffect(() => {
     const fetchDrivers = async () => {
       try {
@@ -354,8 +323,8 @@ export default function DriversPage() {
     // Tab filtresi
     const tabFilter = 
       selectedTab === 'all' ? true :
-      selectedTab === 'active' ? driver.status === 'Aktif' :
-      selectedTab === 'passive' ? driver.status === 'Pasif' :
+      selectedTab === 'active' ? driver.status === 'active' :
+      selectedTab === 'passive' ? driver.status === 'inactive' :
       selectedTab === 'documents' ? driver.documents.some(doc => doc.status === 'Süresi Dolmuş') :
       true;
     
@@ -518,8 +487,8 @@ export default function DriversPage() {
         </div>
 
         {/* İstatistik Kartları */}
-        <div className="flex flex-row gap-4 mb-8">
-          <div className="bg-white rounded-lg shadow p-4 flex-1">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center">
               <div className="bg-blue-100 p-3 rounded-full mr-4">
                 <FaIdCard className="text-blue-600" />
@@ -531,19 +500,19 @@ export default function DriversPage() {
             </div>
           </div>
           
-          <div className="bg-white rounded-lg shadow p-4 flex-1">
+          <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center">
               <div className="bg-green-100 p-3 rounded-full mr-4">
                 <FaCheck className="text-green-600" />
               </div>
               <div>
                 <h3 className="text-gray-500 text-sm">Aktif Sürücüler</h3>
-                <p className="text-2xl font-bold">{activeDriversCount}</p>
+                <p className="text-2xl font-bold">{allDrivers.filter(d => d.status === 'Aktif').length}</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-lg shadow p-4 flex-1">
+          <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center">
               <div className="bg-red-100 p-3 rounded-full mr-4">
                 <FaExclamationCircle className="text-red-600" />

@@ -8,7 +8,7 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
-    domains: ['tasiapp.com', 'portal.tasiapp.com']
+    domains: ['tasiapp.com', 'portal.tasiapp.com', 'images.unsplash.com', 'via.placeholder.com']
   },
   typescript: {
     ignoreBuildErrors: true,
@@ -44,20 +44,12 @@ const nextConfig = {
       },
     ]
   },
-  exportPathMap: async function (
-    defaultPathMap,
-    { dev, dir, outDir, distDir, buildId }
-  ) {
-    const paths = { ...defaultPathMap };
-    
-    delete paths['/portal/upload-documents'];
-    delete paths['/services/express'];
-    delete paths['/services/koli'];
-    delete paths['/services/kurye'];
-    delete paths['/services/palet'];
-    delete paths['/services/parsiyel'];
-    
-    return paths;
+  exportPathMap: async function () {
+    return {
+      '/': { page: '/' },
+      '/admin': { page: '/admin' },
+      '/admin/drivers': { page: '/admin/drivers' }
+    }
   },
 };
 

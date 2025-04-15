@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { 
   FaTruck, FaClock, FaMapMarkedAlt, FaBoxOpen, FaBox, 
-  FaShieldAlt, FaArrowLeft, FaSpinner, FaMoneyBillWave, FaRuler, FaSignOutAlt 
+  FaShieldAlt, FaArrowLeft, FaSpinner, FaMoneyBillWave, FaRuler
 } from 'react-icons/fa'
 import { 
   useLoadScript, 
@@ -12,14 +12,12 @@ import {
   DirectionsRenderer 
 } from '@react-google-maps/api'
 import Link from 'next/link'
-import { useAuth } from '../../lib/auth-context'
 
 const libraries = ['places']
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
 
 export default function ParsiyelPage() {
   const router = useRouter()
-  const { isAuthenticated, user, logout } = useAuth();
   const [pickup, setPickup] = useState('')
   const [delivery, setDelivery] = useState('')
   const [pickupMarker, setPickupMarker] = useState(null)
@@ -192,11 +190,6 @@ export default function ParsiyelPage() {
     }
   }
 
-  const handleLogout = () => {
-    logout();
-    router.push('/');
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -221,61 +214,10 @@ export default function ParsiyelPage() {
               <Link href="/contact" className="text-gray-600 hover:text-orange-600 transition">
                 İletişim
               </Link>
-              
-              {isAuthenticated ? (
-                <div className="flex items-center space-x-4">
-                  <Link 
-                    href="/profile" 
-                    className="px-4 py-2 text-sm font-medium text-orange-600 bg-white border border-orange-600 rounded-md hover:bg-orange-50"
-                  >
-                    Profilim
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-md hover:bg-orange-700"
-                  >
-                    Çıkış Yap
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <Link href="/login" className="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-md hover:bg-orange-700">
-                    Giriş Yap
-                  </Link>
-                  <Link href="/register" className="px-4 py-2 text-sm font-medium text-orange-600 bg-white border border-orange-600 rounded-md hover:bg-orange-50">
-                    Kayıt Ol
-                  </Link>
-                </div>
-              )}
             </div>
             
             {/* Mobil Menü */}
             <div className="md:hidden flex items-center">
-              {isAuthenticated ? (
-                <div className="flex items-center space-x-2">
-                  <Link 
-                    href="/profile" 
-                    className="px-3 py-1.5 text-xs font-medium text-orange-600 bg-white border border-orange-600 rounded-md hover:bg-orange-50"
-                  >
-                    Profilim
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="px-3 py-1.5 text-xs font-medium text-white bg-orange-600 rounded-md hover:bg-orange-700"
-                  >
-                    Çıkış
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <Link href="/login" className="px-3 py-1.5 text-xs font-medium text-white bg-orange-600 rounded-md hover:bg-orange-700">
-                    Giriş Yap
-                  </Link>
-                  <Link href="/register" className="px-3 py-1.5 text-xs font-medium text-orange-600 bg-white border border-orange-600 rounded-md hover:bg-orange-50">
-                    Kayıt Ol
-                  </Link>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -594,18 +536,6 @@ export default function ParsiyelPage() {
                     <div className="ml-4">
                       <h4 className="text-base font-medium">Esnek Ölçüler</h4>
                       <p className="mt-1 text-sm text-gray-500">Her boyutta yük için uygun araç seçeneği</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start">
-                    <div className="shrink-0">
-                      <div className="flex items-center justify-center w-12 h-12 rounded-md bg-red-100 text-red-600">
-                        <FaClock />
-                      </div>
-                    </div>
-                    <div className="ml-4">
-                      <h4 className="text-base font-medium">Düzenli Seferler</h4>
-                      <p className="mt-1 text-sm text-gray-500">Haftalık düzenli parsiyel taşıma hizmetleri</p>
                     </div>
                   </div>
                 </div>
