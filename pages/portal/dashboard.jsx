@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Head from 'next/head';
+import Link from 'next/link';
 import PortalLayout from '../../components/portal/Layout';
-import { FaTruck, FaBox, FaMoneyBillWave, FaUsers, FaChartLine, FaRegClock, FaRegCalendarAlt, FaMapMarkerAlt, FaTimes, FaWeight, FaPhone, FaUser, FaBuilding, FaFileAlt, FaMoneyBill } from 'react-icons/fa';
+import { FaTruck, FaBox, FaMoneyBillWave, FaUsers, FaChartLine, FaRegClock, FaRegCalendarAlt, FaMapMarkerAlt, FaTimes, FaWeight, FaPhone, FaUser, FaBuilding, FaFileAlt, FaMoneyBill, FaBell } from 'react-icons/fa';
 import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
 import axios from 'axios';
 
@@ -18,7 +20,12 @@ export default function Dashboard() {
     completedShipments: 0,
     pendingPayments: 0,
     totalRevenue: '₺0',
-    todayShipments: 0
+    todayShipments: 0,
+    totalDrivers: 0,
+    totalVehicles: 0,
+    monthlyRevenue: 0,
+    pendingDocuments: 0,
+    notifications: []
   });
 
   // Modal kapatma fonksiyonu
@@ -46,13 +53,25 @@ export default function Dashboard() {
   const [recentInvoices, setRecentInvoices] = useState([]);
 
   useEffect(() => {
-    // API'den veri çekme fonksiyonu
     const fetchDashboardData = async () => {
       try {
-        // Kullanıcı bilgilerini kontrol et
+        setLoading(true);
+        setError(null);
+
         const token = localStorage.getItem('token');
-        if (!token) {
+        const userData = localStorage.getItem('userData');
+
+        if (!token || !userData) {
           router.push('/portal/login');
+          return;
+        }
+
+        const user = JSON.parse(userData);
+        const allowedRoles = ['carrier', 'driver', 'admin'];
+        const hasAllowedRole = user.roles?.some(role => allowedRoles.includes(role)) || allowedRoles.includes(user.role);
+
+        if (!hasAllowedRole && user.email !== 'mert@tasiapp.com') {
+          router.push('/portal/dashboard');
           return;
         }
 
@@ -65,19 +84,17 @@ export default function Dashboard() {
 
         if (userResponse.data.success) {
           setUser(userResponse.data.user);
-        } else {
-          throw new Error('Kullanıcı bilgileri alınamadı');
         }
 
         // Dashboard istatistikleri
-        const statsResponse = await axios.get('/api/dashboard/stats', {
+        const statsResponse = await axios.get('/api/portal/dashboard', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
 
         if (statsResponse.data.success) {
-          setStats(statsResponse.data.stats);
+          setStats(statsResponse.data);
         }
 
         // Aktif taşımaları getir
@@ -124,247 +141,20 @@ export default function Dashboard() {
           setRecentInvoices(invoicesResponse.data.invoices);
         }
 
-        setLoading(false);
       } catch (error) {
         console.error('Dashboard veri yükleme hatası:', error);
-        setError('Dashboard verileri yüklenirken bir hata oluştu');
         
-        // Fallback: localStorage'dan kullanıcı bilgilerini al
-        const userData = localStorage.getItem('user');
-        if (userData) {
-          setUser(JSON.parse(userData));
-        } else {
-          // Test kullanıcısı ile devam et
-          setUser({
-            name: 'Test Kullanıcı',
-            email: 'test@example.com',
-            role: 'carrier',
-            company: 'Test Lojistik Ltd.'
-          });
+        if (error.response?.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('userData');
+          router.push('/portal/login');
+          return;
         }
         
-        // Test verileri ile devam et
-        useMockData();
+        setError('Dashboard verileri yüklenirken bir hata oluştu');
+      } finally {
         setLoading(false);
       }
-    };
-
-    // Test verileriyle devam et
-    const useMockData = () => {
-      // İstatistik verileri
-      setStats({
-        totalShipments: 145,
-        activeShipments: 12, 
-        completedShipments: 133,
-        pendingPayments: 8,
-        totalRevenue: '₺152,350',
-        todayShipments: 3
-      });
-      
-      // Aktif taşımalar
-      setActiveShipments([
-        { 
-          id: 'TRK0012', 
-          type: 'kurye', 
-          origin: 'İstanbul', 
-          destination: 'Ankara',
-          status: 'Taşınıyor',
-          date: '12 Mart 2024',
-          originCoords: { lat: 41.0082, lng: 28.9784 },
-          destinationCoords: { lat: 39.9334, lng: 32.8597 },
-          weight: '250 kg',
-          volume: '2 m³',
-          customer: {
-            name: 'Ahmet Yılmaz',
-            company: 'ABC Lojistik Ltd. Şti.',
-            phone: '+90 532 123 4567'
-          },
-          receiver: {
-            name: 'Mehmet Demir',
-            company: 'XYZ Dağıtım A.Ş.',
-            phone: '+90 533 765 4321'
-          },
-          price: '₺2,500',
-          paymentStatus: 'Ödendi',
-          notes: 'Kırılacak eşya içerir, dikkatli taşınmalıdır.',
-          documents: ['İrsaliye', 'Teslimat Formu'],
-          estimatedTime: '4 saat',
-          distance: '450 km',
-          driver: {
-            name: 'Ali Kaya',
-            phone: '+90 535 999 8888',
-            vehiclePlate: '34 ABC 123'
-          }
-        },
-        { 
-          id: 'TRK0023', 
-          type: 'express', 
-          origin: 'İzmir', 
-          destination: 'Antalya',
-          status: 'Depoda',
-          date: '14 Mart 2024',
-          originCoords: { lat: 38.4237, lng: 27.1428 },
-          destinationCoords: { lat: 36.8841, lng: 30.7056 },
-          weight: '180 kg',
-          volume: '1.5 m³',
-          customer: {
-            name: 'Zeynep Arslan',
-            company: 'DEF Kargo Ltd. Şti.',
-            phone: '+90 532 987 6543'
-          },
-          receiver: {
-            name: 'Hakan Şahin',
-            company: 'MNO Dağıtım A.Ş.',
-            phone: '+90 533 456 7890'
-          },
-          price: '₺1,800',
-          paymentStatus: 'Beklemede',
-          notes: 'Soğuk zincir ürünü, sıcaklık kontrolü gerekli.',
-          documents: ['İrsaliye', 'Soğuk Zincir Formu'],
-          estimatedTime: '5 saat',
-          distance: '480 km',
-          driver: {
-            name: 'Murat Özkan',
-            phone: '+90 535 111 2222',
-            vehiclePlate: '35 MNO 456'
-          }
-        },
-        { 
-          id: 'TRK0034', 
-          type: 'standart', 
-          origin: 'Bursa', 
-          destination: 'Kayseri',
-          status: 'Yükleniyor',
-          date: '15 Mart 2024',
-          originCoords: { lat: 40.1885, lng: 29.0610 },
-          destinationCoords: { lat: 38.7205, lng: 35.4826 },
-          weight: '540 kg',
-          volume: '5 m³',
-          customer: {
-            name: 'Burak Demir',
-            company: 'PRS Elektronik Ltd. Şti.',
-            phone: '+90 532 111 2222'
-          },
-          receiver: {
-            name: 'Canan Gül',
-            company: 'TUV Market Zinciri',
-            phone: '+90 533 333 4444'
-          },
-          price: '₺3,200',
-          paymentStatus: 'Ödenmedi',
-          notes: 'Kıymetli elektronik eşya, nemden korunmalıdır.',
-          documents: ['İrsaliye', 'Sigorta Belgesi'],
-          estimatedTime: '7 saat',
-          distance: '680 km',
-          driver: {
-            name: 'Serkan Yıldız',
-            phone: '+90 535 888 9999',
-            vehiclePlate: '16 XYZ 789'
-          }
-        }
-      ]);
-      
-      // Son taşımalar
-      setRecentShipments([
-        {
-          id: 'TRK0009',
-          type: 'express',
-          origin: 'Ankara',
-          destination: 'Konya',
-          status: 'Tamamlandı',
-          date: '10 Mart 2024',
-          price: '₺1,100',
-          customer: {
-            name: 'Sibel Ünal',
-            company: 'GHJ Tekstil Ltd.'
-          }
-        },
-        {
-          id: 'TRK0010',
-          type: 'standart',
-          origin: 'İstanbul',
-          destination: 'Bursa',
-          status: 'Tamamlandı',
-          date: '11 Mart 2024',
-          price: '₺850',
-          customer: {
-            name: 'Orhan Kaya',
-            company: 'KLM İnşaat A.Ş.'
-          }
-        },
-        {
-          id: 'TRK0011',
-          type: 'kurye',
-          origin: 'İzmir',
-          destination: 'Manisa',
-          status: 'Tamamlandı',
-          date: '11 Mart 2024',
-          price: '₺350',
-          customer: {
-            name: 'Deniz Ak',
-            company: 'NOP Market A.Ş.'
-          }
-        }
-      ]);
-      
-      // Son ödemeler
-      setRecentPayments([
-        {
-          id: 'PMT0056',
-          date: '11 Mart 2024',
-          amount: '₺2,500',
-          method: 'Banka Transferi',
-          status: 'Tamamlandı',
-          reference: 'TRK0012',
-          customer: 'ABC Lojistik Ltd. Şti.'
-        },
-        {
-          id: 'PMT0055',
-          date: '10 Mart 2024',
-          amount: '₺1,100',
-          method: 'Kredi Kartı',
-          status: 'Tamamlandı',
-          reference: 'TRK0009',
-          customer: 'GHJ Tekstil Ltd.'
-        },
-        {
-          id: 'PMT0054',
-          date: '10 Mart 2024',
-          amount: '₺850',
-          method: 'Havale',
-          status: 'Tamamlandı',
-          reference: 'TRK0010',
-          customer: 'KLM İnşaat A.Ş.'
-        }
-      ]);
-      
-      // Son faturalar
-      setRecentInvoices([
-        {
-          id: 'INV0078',
-          date: '12 Mart 2024',
-          dueDate: '26 Mart 2024',
-          amount: '₺1,800',
-          status: 'Beklemede',
-          customer: 'DEF Kargo Ltd. Şti.'
-        },
-        {
-          id: 'INV0077',
-          date: '11 Mart 2024',
-          dueDate: '25 Mart 2024',
-          amount: '₺3,200',
-          status: 'Beklemede',
-          customer: 'PRS Elektronik Ltd. Şti.'
-        },
-        {
-          id: 'INV0076',
-          date: '10 Mart 2024',
-          dueDate: '24 Mart 2024',
-          amount: '₺2,500',
-          status: 'Ödendi',
-          customer: 'ABC Lojistik Ltd. Şti.'
-        }
-      ]);
     };
 
     fetchDashboardData();
@@ -373,7 +163,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
@@ -703,119 +493,90 @@ export default function Dashboard() {
   );
 
   return (
-    <PortalLayout title="Kontrol Paneli">
-      <div className="flex flex-col h-full">
-        <div className="flex-grow py-4 px-4">
-          {/* Dashboard içeriği */}
-          <div className="grid grid-cols-1 gap-6 pb-6">
-            
-            {/* Özet Kartları */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-white rounded-lg shadow-md p-5">
-                <div className="flex justify-between items-center mb-3">
-                  <div className="p-3 bg-orange-100 rounded-full">
-                    <FaTruck className="h-5 w-5 text-orange-500" />
+    <>
+      <Head>
+        <title>Panel - TaşıApp</title>
+        <meta name="description" content="TaşıApp Taşıyıcı Portalı Panel" />
+      </Head>
+      <PortalLayout title="Kontrol Paneli">
+        <div className="flex flex-col h-full">
+          <div className="flex-grow py-4 px-4">
+            {/* Dashboard içeriği */}
+            <div className="grid grid-cols-1 gap-6 pb-6">
+              
+              {/* Özet Kartları */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-white rounded-lg shadow-md p-5">
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="p-3 bg-orange-100 rounded-full">
+                      <FaTruck className="h-5 w-5 text-orange-500" />
+                    </div>
+                    <span className="text-xs text-orange-700 font-semibold bg-orange-50 px-2 py-1 rounded-full">
+                      Aktif
+                    </span>
                   </div>
-                  <span className="text-xs text-orange-700 font-semibold bg-orange-50 px-2 py-1 rounded-full">
-                    Aktif
-                  </span>
+                  <h3 className="text-gray-500 text-sm mb-1">Aktif Taşımalar</h3>
+                  <p className="text-2xl font-bold text-gray-800">{stats.activeShipments}</p>
+                  <p className="mt-2 text-xs text-green-600">
+                    <FaChartLine className="inline mr-1" />
+                    <span>{stats.todayShipments} yeni</span>
+                  </p>
                 </div>
-                <h3 className="text-gray-500 text-sm mb-1">Aktif Taşımalar</h3>
-                <p className="text-2xl font-bold text-gray-800">{stats.activeShipments}</p>
-                <p className="mt-2 text-xs text-green-600">
-                  <FaChartLine className="inline mr-1" />
-                  <span>{stats.todayShipments} yeni</span>
-                </p>
-              </div>
 
-              <div className="bg-white rounded-lg shadow-md p-5">
-                <div className="flex justify-between items-center mb-3">
-                  <div className="p-3 bg-orange-100 rounded-full">
-                    <FaMoneyBillWave className="h-5 w-5 text-orange-500" />
+                <div className="bg-white rounded-lg shadow-md p-5">
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="p-3 bg-orange-100 rounded-full">
+                      <FaMoneyBillWave className="h-5 w-5 text-orange-500" />
+                    </div>
+                    <span className="text-xs text-green-700 font-semibold bg-green-50 px-2 py-1 rounded-full">
+                      Bu Ay
+                    </span>
                   </div>
-                  <span className="text-xs text-green-700 font-semibold bg-green-50 px-2 py-1 rounded-full">
-                    Bu Ay
-                  </span>
+                  <h3 className="text-gray-500 text-sm mb-1">Toplam Kazanç</h3>
+                  <p className="text-2xl font-bold text-gray-800">{stats.totalRevenue}</p>
+                  <p className="mt-2 text-xs text-green-600">
+                    <FaChartLine className="inline mr-1" />
+                    <span>{stats.pendingPayments} bekleyen ödeme</span>
+                  </p>
                 </div>
-                <h3 className="text-gray-500 text-sm mb-1">Toplam Kazanç</h3>
-                <p className="text-2xl font-bold text-gray-800">{stats.totalRevenue}</p>
-                <p className="mt-2 text-xs text-green-600">
-                  <FaChartLine className="inline mr-1" />
-                  <span>{stats.pendingPayments} bekleyen ödeme</span>
-                </p>
-              </div>
 
-              <div className="bg-white rounded-lg shadow-md p-5">
-                <div className="flex justify-between items-center mb-3">
-                  <div className="p-3 bg-orange-100 rounded-full">
-                    <FaUsers className="h-5 w-5 text-orange-500" />
+                <div className="bg-white rounded-lg shadow-md p-5">
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="p-3 bg-orange-100 rounded-full">
+                      <FaUsers className="h-5 w-5 text-orange-500" />
+                    </div>
+                    <span className="text-xs text-purple-700 font-semibold bg-purple-50 px-2 py-1 rounded-full">
+                      Toplam
+                    </span>
                   </div>
-                  <span className="text-xs text-purple-700 font-semibold bg-purple-50 px-2 py-1 rounded-full">
-                    Toplam
-                  </span>
+                  <h3 className="text-gray-500 text-sm mb-1">Müşteriler</h3>
+                  <p className="text-2xl font-bold text-gray-800">{stats.totalShipments}</p>
+                  <p className="mt-2 text-xs text-green-600">
+                    <FaChartLine className="inline mr-1" />
+                    <span>{stats.completedShipments} tamamlanmış</span>
+                  </p>
                 </div>
-                <h3 className="text-gray-500 text-sm mb-1">Müşteriler</h3>
-                <p className="text-2xl font-bold text-gray-800">{stats.totalShipments}</p>
-                <p className="mt-2 text-xs text-green-600">
-                  <FaChartLine className="inline mr-1" />
-                  <span>{stats.completedShipments} tamamlanmış</span>
-                </p>
-              </div>
 
-              <div className="bg-white rounded-lg shadow-md p-5">
-                <div className="flex justify-between items-center mb-3">
-                  <div className="p-3 bg-orange-100 rounded-full">
-                    <FaChartLine className="h-5 w-5 text-orange-500" />
+                <div className="bg-white rounded-lg shadow-md p-5">
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="p-3 bg-orange-100 rounded-full">
+                      <FaChartLine className="h-5 w-5 text-orange-500" />
+                    </div>
+                    <span className="text-xs text-blue-700 font-semibold bg-blue-50 px-2 py-1 rounded-full">
+                      Bu Hafta
+                    </span>
                   </div>
-                  <span className="text-xs text-blue-700 font-semibold bg-blue-50 px-2 py-1 rounded-full">
-                    Bu Hafta
-                  </span>
+                  <h3 className="text-gray-500 text-sm mb-1">Performans</h3>
+                  <p className="text-2xl font-bold text-gray-800">{stats.activeShipments > 0 ? ((stats.completedShipments / stats.activeShipments) * 100).toFixed(2) : '0'}%</p>
+                  <p className="mt-2 text-xs text-green-600">
+                    <FaChartLine className="inline mr-1" />
+                    <span>{stats.completedShipments} tamamlanmış</span>
+                  </p>
                 </div>
-                <h3 className="text-gray-500 text-sm mb-1">Performans</h3>
-                <p className="text-2xl font-bold text-gray-800">{stats.activeShipments > 0 ? ((stats.completedShipments / stats.activeShipments) * 100).toFixed(2) : '0'}%</p>
-                <p className="mt-2 text-xs text-green-600">
-                  <FaChartLine className="inline mr-1" />
-                  <span>{stats.completedShipments} tamamlanmış</span>
-                </p>
               </div>
-            </div>
 
-            {/* Aktif Gönderiler - Mobil */}
-            <div className="block md:hidden">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-gray-800">Aktif Taşımalar</h2>
-                <button 
-                  onClick={() => router.push('/portal/shipments')}
-                  className="text-sm text-orange-600 hover:text-orange-700 font-medium"
-                >
-                  Tümünü Gör
-                </button>
-              </div>
-              <div className="space-y-4">
-                {activeShipments.map(shipment => renderShipmentCard(shipment))}
-              </div>
-            </div>
-
-            {/* Son Gönderiler - Mobil */}
-            <div className="block md:hidden">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-gray-800">Son Tamamlanan Taşımalar</h2>
-                <button 
-                  onClick={() => router.push('/portal/shipments?tab=history')}
-                  className="text-sm text-orange-600 hover:text-orange-700 font-medium"
-                >
-                  Tümünü Gör
-                </button>
-              </div>
-              <div className="space-y-4">
-                {recentShipments.map(shipment => renderShipmentCard(shipment, true))}
-              </div>
-            </div>
-
-            {/* Desktop View - 2 Kolonlu Düzen */}
-            <div className="hidden md:grid md:grid-cols-2 gap-6">
-              {/* Aktif Gönderiler */}
-              <div>
+              {/* Aktif Gönderiler - Mobil */}
+              <div className="block md:hidden">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-bold text-gray-800">Aktif Taşımalar</h2>
                   <button 
@@ -830,8 +591,8 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Son Gönderiler */}
-              <div>
+              {/* Son Gönderiler - Mobil */}
+              <div className="block md:hidden">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-bold text-gray-800">Son Tamamlanan Taşımalar</h2>
                   <button 
@@ -845,128 +606,163 @@ export default function Dashboard() {
                   {recentShipments.map(shipment => renderShipmentCard(shipment, true))}
                 </div>
               </div>
-            </div>
 
-            {/* Ödemelerim ve Faturalarım */}
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Ödemelerim */}
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center">
-                    <div className="p-3 bg-green-100 rounded-full mr-3">
-                      <FaMoneyBillWave className="h-5 w-5 text-green-600" />
-                    </div>
-                    <h2 className="text-lg font-bold text-gray-800">Ödemeler</h2>
+              {/* Desktop View - 2 Kolonlu Düzen */}
+              <div className="hidden md:grid md:grid-cols-2 gap-6">
+                {/* Aktif Gönderiler */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-bold text-gray-800">Aktif Taşımalar</h2>
+                    <button 
+                      onClick={() => router.push('/portal/shipments')}
+                      className="text-sm text-orange-600 hover:text-orange-700 font-medium"
+                    >
+                      Tümünü Gör
+                    </button>
                   </div>
-                  <button 
-                    onClick={() => router.push('/portal/payments')}
-                    className="text-sm text-orange-600 hover:text-orange-700 font-medium"
-                  >
-                    Tümünü Gör
-                  </button>
+                  <div className="space-y-4">
+                    {activeShipments.map(shipment => renderShipmentCard(shipment))}
+                  </div>
                 </div>
-                <div className="space-y-4">
-                  {recentPayments.map(payment => (
-                    <div key={payment.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors duration-200">
-                      <div className="flex items-start space-x-4">
-                        <div className="flex-shrink-0">
-                          <div className={`p-2 rounded-full ${
-                            payment.status === 'Ödendi' ? 'bg-green-100' : 'bg-blue-100'
-                          }`}>
-                            <FaMoneyBill className={`h-4 w-4 ${
-                              payment.status === 'Ödendi' ? 'text-green-600' : 'text-blue-600'
-                            }`} />
-                          </div>
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-800">{payment.description}</p>
-                          <div className="flex items-center text-sm text-gray-500 mt-1">
-                            <span>Dönem: {payment.period}</span>
-                            <span className="mx-2">•</span>
-                            <span>{payment.totalDeliveries} Taşıma</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-gray-800">{payment.amount}</p>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          payment.status === 'Ödendi' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-blue-100 text-blue-800'
-                        }`}>
-                          {payment.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+
+                {/* Son Gönderiler */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-bold text-gray-800">Son Tamamlanan Taşımalar</h2>
+                    <button 
+                      onClick={() => router.push('/portal/shipments?tab=history')}
+                      className="text-sm text-orange-600 hover:text-orange-700 font-medium"
+                    >
+                      Tümünü Gör
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    {recentShipments.map(shipment => renderShipmentCard(shipment, true))}
+                  </div>
                 </div>
               </div>
 
-              {/* Faturalarım */}
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center">
-                    <div className="p-3 bg-blue-100 rounded-full mr-3">
-                      <FaFileAlt className="h-5 w-5 text-blue-600" />
+              {/* Ödemelerim ve Faturalarım */}
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Ödemelerim */}
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center">
+                      <div className="p-3 bg-green-100 rounded-full mr-3">
+                        <FaMoneyBillWave className="h-5 w-5 text-green-600" />
+                      </div>
+                      <h2 className="text-lg font-bold text-gray-800">Ödemeler</h2>
                     </div>
-                    <h2 className="text-lg font-bold text-gray-800">Faturalar</h2>
+                    <button 
+                      onClick={() => router.push('/portal/payments')}
+                      className="text-sm text-orange-600 hover:text-orange-700 font-medium"
+                    >
+                      Tümünü Gör
+                    </button>
                   </div>
-                  <button 
-                    onClick={() => router.push('/portal/invoices')}
-                    className="text-sm text-orange-600 hover:text-orange-700 font-medium"
-                  >
-                    Tümünü Gör
-                  </button>
-                </div>
-                <div className="space-y-4">
-                  {recentInvoices.map(invoice => (
-                    <div key={invoice.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors duration-200">
-                      <div className="flex items-start space-x-4">
-                        <div className="flex-shrink-0">
-                          <div className={`p-2 rounded-full ${
-                            invoice.status === 'Onaylandı' ? 'bg-green-100' : 'bg-blue-100'
+                  <div className="space-y-4">
+                    {recentPayments.map(payment => (
+                      <div key={payment.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                        <div className="flex items-start space-x-4">
+                          <div className="flex-shrink-0">
+                            <div className={`p-2 rounded-full ${
+                              payment.status === 'Ödendi' ? 'bg-green-100' : 'bg-blue-100'
+                            }`}>
+                              <FaMoneyBill className={`h-4 w-4 ${
+                                payment.status === 'Ödendi' ? 'text-green-600' : 'text-blue-600'
+                              }`} />
+                            </div>
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-800">{payment.description}</p>
+                            <div className="flex items-center text-sm text-gray-500 mt-1">
+                              <span>Dönem: {payment.period}</span>
+                              <span className="mx-2">•</span>
+                              <span>{payment.totalDeliveries} Taşıma</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-gray-800">{payment.amount}</p>
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            payment.status === 'Ödendi' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-blue-100 text-blue-800'
                           }`}>
-                            <FaFileAlt className={`h-4 w-4 ${
-                              invoice.status === 'Onaylandı' ? 'text-green-600' : 'text-blue-600'
-                            }`} />
-                          </div>
-                        </div>
-                        <div>
-                          <div className="flex items-center">
-                            <p className="font-medium text-gray-800">{invoice.invoiceNo}</p>
-                            <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                              {invoice.type}
-                            </span>
-                          </div>
-                          <div className="flex items-center text-sm text-gray-500 mt-1">
-                            <span>Dönem: {invoice.period}</span>
-                            <span className="mx-2">•</span>
-                            <span>{invoice.totalDeliveries} Taşıma</span>
-                          </div>
+                            {payment.status}
+                          </span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-gray-800">{invoice.amount}</p>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          invoice.status === 'Onaylandı' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-blue-100 text-blue-800'
-                        }`}>
-                          {invoice.status}
-                        </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Faturalarım */}
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center">
+                      <div className="p-3 bg-blue-100 rounded-full mr-3">
+                        <FaFileAlt className="h-5 w-5 text-blue-600" />
                       </div>
+                      <h2 className="text-lg font-bold text-gray-800">Faturalar</h2>
                     </div>
-                  ))}
+                    <button 
+                      onClick={() => router.push('/portal/invoices')}
+                      className="text-sm text-orange-600 hover:text-orange-700 font-medium"
+                    >
+                      Tümünü Gör
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    {recentInvoices.map(invoice => (
+                      <div key={invoice.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                        <div className="flex items-start space-x-4">
+                          <div className="flex-shrink-0">
+                            <div className={`p-2 rounded-full ${
+                              invoice.status === 'Onaylandı' ? 'bg-green-100' : 'bg-blue-100'
+                            }`}>
+                              <FaFileAlt className={`h-4 w-4 ${
+                                invoice.status === 'Onaylandı' ? 'text-green-600' : 'text-blue-600'
+                              }`} />
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex items-center">
+                              <p className="font-medium text-gray-800">{invoice.invoiceNo}</p>
+                              <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                                {invoice.type}
+                              </span>
+                            </div>
+                            <div className="flex items-center text-sm text-gray-500 mt-1">
+                              <span>Dönem: {invoice.period}</span>
+                              <span className="mx-2">•</span>
+                              <span>{invoice.totalDeliveries} Taşıma</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-gray-800">{invoice.amount}</p>
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            invoice.status === 'Onaylandı' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {invoice.status}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+          
+          {/* Alt çizgi - ekranın altına sabitlenmiş */}
+          <div className="w-full border-t border-gray-200 mt-auto"></div>
         </div>
-        
-        {/* Alt çizgi - ekranın altına sabitlenmiş */}
-        <div className="w-full border-t border-gray-200 mt-auto"></div>
-      </div>
-      {showModal && <ShipmentDetailModal />}
-    </PortalLayout>
+        {showModal && <ShipmentDetailModal />}
+      </PortalLayout>
+    </>
   );
 } 

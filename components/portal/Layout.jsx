@@ -392,8 +392,8 @@ export default function PortalLayout({ children, title = 'Taşıyıcı Portalı'
         </div>
 
         {/* Main content container */}
-        <div className="flex flex-col w-0 flex-1 min-h-screen">
-          <div className="w-screen overflow-x-hidden">
+        <div className="flex flex-col w-0 flex-1 min-h-screen overflow-hidden">
+          <div className="w-full overflow-x-hidden">
             {/* Mobil Header */}
             <div className="md:hidden bg-white shadow-sm z-10">
               <div className="flex items-center justify-between px-3 py-2">
@@ -455,7 +455,7 @@ export default function PortalLayout({ children, title = 'Taşıyıcı Portalı'
             </div>
 
             {/* Desktop Header */}
-            <div className="hidden md:flex md:items-center p-4 border-b border-gray-200 bg-white shadow-sm w-screen ml-[-48px] pl-[calc(48px+1rem)]">
+            <div className="hidden md:flex md:items-center p-4 border-b border-gray-200 bg-white shadow-sm w-full">
               <div className="flex-grow">
                 <div className="flex items-center">
                   <h1 className="text-2xl font-bold">{title}</h1>
@@ -471,7 +471,7 @@ export default function PortalLayout({ children, title = 'Taşıyıcı Portalı'
                   </span>
                 </div>
               </div>
-              <div className="flex items-center space-x-4 pr-8">
+              <div className="flex items-center space-x-4">
                 <div className="text-right">
                   <div className="flex items-center justify-end text-sm text-gray-600">
                     <FaCalendarAlt className="h-4 w-4 mr-1 text-orange-500" />

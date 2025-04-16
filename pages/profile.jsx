@@ -96,11 +96,13 @@ export default function Profile() {
   // Kullanıcı verilerini yükle
   useEffect(() => {
     if (!authLoading && isAuthenticated && authUser) {
+      // Kullanıcı verilerini console.log ile kontrol et
+      console.log('authUser:', authUser);
       // Form verilerini doldur
       setFormData({
-        fullName: authUser.name || '',
+        fullName: authUser.name || authUser.fullName || '',
         email: authUser.email || '',
-        phone: authUser.phone || '',
+        phone: authUser.phone || authUser.phoneNumber || '',
         address: authUser.address || '',
         notifications: authUser.notifications !== false,
         language: authUser.language || 'tr',

@@ -1,7 +1,11 @@
 const mongoose = require('mongoose');
 
-// MongoDB bağlantı URI'sini oluştur
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://infotasiapp:Tasi2025.@cluster0.ttipxu5.mongodb.net/tasiapp?retryWrites=true&w=majority';
+// MongoDB bağlantı URI'sini environment variable'dan al
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+  throw new Error('MONGODB_URI environment variable is not defined');
+}
 
 // Mongoose ayarları
 mongoose.set('strictQuery', false);

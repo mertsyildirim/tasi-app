@@ -1,20 +1,23 @@
 'use client'
 
 import React, { useState } from 'react'
-import { FaGoogle, FaFacebook } from 'react-icons/fa'
 import Link from 'next/link'
-import { useAuth } from '../src/lib/auth'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
+import { signIn } from 'next-auth/react'
+import Image from 'next/image'
 
 const Login = () => {
-  const { login } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [loginType, setLoginType] = useState('email') // 'email' veya 'phone'
+  const [otpSent, setOtpSent] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+    phone: '',
+    otp: '',
     rememberMe: false
   })
 
@@ -27,35 +30,102 @@ const Login = () => {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+
     try {
-      console.log('Giriş yapılıyor:', formData.email);
-      const result = await login(formData.email, formData.password);
-      
-      if (!result.success) {
-        console.error('Giriş başarısız:', result.message);
-        setError(result.message || 'Giriş yapılırken bir hata oluştu');
+      if (loginType === 'email') {
+        const result = await signIn('credentials', {
+          redirect: false,
+          email: formData.email,
+          password: formData.password
+        })
+
+        if (result.error) {
+          setError('Giriş başarısız. Lütfen bilgilerinizi kontrol edin.')
+        } else {
+          router.push('/portal/dashboard')
+        }
+      } else {
+        // Telefon numarası ile giriş
+        if (!otpSent) {
+          // OTP gönderme işlemi
+          try {
+            const response = await fetch('/api/auth/send-otp', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ phone: formData.phone }),
+            })
+            
+            if (response.ok) {
+              setOtpSent(true)
+              setError('')
+            } else {
+              const data = await response.json()
+              setError(data.error || 'OTP gönderilemedi. Lütfen tekrar deneyin.')
+            }
+          } catch (error) {
+            setError('OTP gönderilirken bir hata oluştu.')
+          }
+        } else {
+          // OTP doğrulama işlemi
+          try {
+            const response = await fetch('/api/auth/verify-otp', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ 
+                phone: formData.phone,
+                otp: formData.otp 
+              }),
+            })
+            
+            if (response.ok) {
+              router.push('/portal/dashboard')
+            } else {
+              const data = await response.json()
+              setError(data.error || 'OTP doğrulanamadı. Lütfen tekrar deneyin.')
+            }
+          } catch (error) {
+            setError('OTP doğrulanırken bir hata oluştu.')
+          }
+        }
       }
-      // Başarılı giriş durumunda yönlendirme auth provider tarafından yapılacak
     } catch (error) {
-      console.error('Login error:', error);
-      setError('Sunucu hatası. Lütfen daha sonra tekrar deneyin.');
+      setError('Bir hata oluştu. Lütfen tekrar deneyin.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
+
+  const toggleLoginType = () => {
+    setLoginType(prev => prev === 'email' ? 'phone' : 'email')
+    setOtpSent(false)
+    setError('')
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Head>
-        <title>Giriş Yap</title>
+        <title>Giriş Yap | Taşı.app</title>
+        <meta name="description" content="Taşı.app giriş sayfası" />
       </Head>
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <div className="flex flex-col items-center">
+          <div className="mb-6">
+            <Image
+              src="/logo.png"
+              alt="Taşı.app Logo"
+              width={150}
+              height={150}
+              priority
+            />
+          </div>
+          <h2 className="text-center text-3xl font-extrabold text-gray-900">
             Hesabınıza Giriş Yapın
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
@@ -64,6 +134,34 @@ const Login = () => {
               Hemen kaydolun
             </Link>
           </p>
+        </div>
+        
+        {/* Giriş tipi toggle */}
+        <div className="flex justify-center mb-6">
+          <div className="inline-flex rounded-md shadow-sm" role="group">
+            <button
+              type="button"
+              className={`px-4 py-2 text-sm font-medium rounded-l-lg ${
+                loginType === 'email'
+                  ? 'bg-orange-600 text-white'
+                  : 'bg-white text-gray-700 hover:bg-gray-50'
+              } border border-gray-200`}
+              onClick={() => setLoginType('email')}
+            >
+              E-posta ile Giriş
+            </button>
+            <button
+              type="button"
+              className={`px-4 py-2 text-sm font-medium rounded-r-lg ${
+                loginType === 'phone'
+                  ? 'bg-orange-600 text-white'
+                  : 'bg-white text-gray-700 hover:bg-gray-50'
+              } border border-gray-200`}
+              onClick={() => setLoginType('phone')}
+            >
+              Telefon ile Giriş
+            </button>
+          </div>
         </div>
         
         {error && (
@@ -82,61 +180,101 @@ const Login = () => {
         )}
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email" className="sr-only">Email adresi</label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
-                placeholder="Email adresi"
-                value={formData.email}
-                onChange={handleChange}
-                disabled={loading}
-              />
+          {loginType === 'email' ? (
+            // E-posta ile giriş formu
+            <div className="rounded-md shadow-sm -space-y-px">
+              <div>
+                <label htmlFor="email" className="sr-only">Email adresi</label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
+                  placeholder="Email adresi"
+                  value={formData.email}
+                  onChange={handleChange}
+                  disabled={loading}
+                />
+              </div>
+              <div>
+                <label htmlFor="password" className="sr-only">Şifre</label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
+                  placeholder="Şifre"
+                  value={formData.password}
+                  onChange={handleChange}
+                  disabled={loading}
+                />
+              </div>
             </div>
-            <div>
-              <label htmlFor="password" className="sr-only">Şifre</label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
-                placeholder="Şifre"
-                value={formData.password}
-                onChange={handleChange}
-                disabled={loading}
-              />
+          ) : (
+            // Telefon ile giriş formu
+            <div className="rounded-md shadow-sm -space-y-px">
+              <div>
+                <label htmlFor="phone" className="sr-only">Telefon numarası</label>
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  autoComplete="tel"
+                  required
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
+                  placeholder="Telefon numarası (5XX XXX XX XX)"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  disabled={loading || otpSent}
+                />
+              </div>
+              {otpSent && (
+                <div>
+                  <label htmlFor="otp" className="sr-only">Doğrulama kodu</label>
+                  <input
+                    id="otp"
+                    name="otp"
+                    type="text"
+                    required
+                    className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
+                    placeholder="Doğrulama kodu"
+                    value={formData.otp}
+                    onChange={handleChange}
+                    disabled={loading}
+                  />
+                </div>
+              )}
             </div>
-          </div>
+          )}
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="rememberMe"
-                name="rememberMe"
-                type="checkbox"
-                className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
-                checked={formData.rememberMe}
-                onChange={handleChange}
-                disabled={loading}
-              />
-              <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-900">
-                Beni hatırla
-              </label>
-            </div>
+          {loginType === 'email' && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="rememberMe"
+                  name="rememberMe"
+                  type="checkbox"
+                  className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                  checked={formData.rememberMe}
+                  onChange={handleChange}
+                  disabled={loading}
+                />
+                <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-900">
+                  Beni hatırla
+                </label>
+              </div>
 
-            <div className="text-sm">
-              <Link href="/forgot-password" className="font-medium text-orange-600 hover:text-orange-500">
-                Şifremi unuttum
-              </Link>
+              <div className="text-sm">
+                <Link href="/forgot-password" className="font-medium text-orange-600 hover:text-orange-500">
+                  Şifremi unuttum
+                </Link>
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <button
@@ -146,39 +284,10 @@ const Login = () => {
               } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500`}
               disabled={loading}
             >
-              {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+              {loading 
+                ? (loginType === 'phone' && !otpSent ? 'Kod Gönderiliyor...' : 'Giriş yapılıyor...') 
+                : (loginType === 'phone' && !otpSent ? 'Kod Gönder' : 'Giriş Yap')}
             </button>
-          </div>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Veya şununla giriş yapın</span>
-              </div>
-            </div>
-
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                disabled={loading}
-              >
-                <FaGoogle className="w-5 h-5 text-red-500" />
-                <span className="ml-2">Google</span>
-              </button>
-
-              <button
-                type="button"
-                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                disabled={loading}
-              >
-                <FaFacebook className="w-5 h-5 text-blue-600" />
-                <span className="ml-2">Facebook</span>
-              </button>
-            </div>
           </div>
         </form>
       </div>

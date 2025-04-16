@@ -18,6 +18,7 @@ export default function DriversPage() {
   const [showAddDriverModal, setShowAddDriverModal] = useState(false)
   const [showEditDriverModal, setShowEditDriverModal] = useState(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
   
   // ESC tuşu ile modal'ları kapatma
   useEffect(() => {
@@ -78,7 +79,53 @@ export default function DriversPage() {
     address: '',
     notes: ''
   });
-  
+
+  // Belge yükleme için state
+  const [newDocument, setNewDocument] = useState({
+    type: '',
+    validUntil: '',
+    file: null
+  });
+
+  // Belge kontrolü için gerekli fonksiyonlar
+  const checkDocumentStatus = (driver) => {
+    const requiredDocuments = [
+      { name: 'Ehliyet Görüntüsü (Ön)', type: 'Zorunlu' },
+      { name: 'Ehliyet Görüntüsü (Arka)', type: 'Zorunlu' },
+      { name: 'Adli Sicil Kaydı', type: 'Zorunlu' }
+    ];
+
+    // Ehliyet geçerlilik süresi kontrolü
+    const hasExpiredLicense = driver.licenseExpiry && new Date(driver.licenseExpiry) < new Date();
+    
+    // Zorunlu belgelerin kontrolü
+    const hasAllRequiredDocs = requiredDocuments.every(doc => 
+      driver.documents?.some(d => d.name === doc.name && d.status === 'Aktif')
+    );
+
+    return {
+      hasExpiredDocuments: hasExpiredLicense || !hasAllRequiredDocs,
+      missingDocuments: requiredDocuments.filter(doc => 
+        !driver.documents?.some(d => d.name === doc.name && d.status === 'Aktif')
+      )
+    };
+  };
+
+  // Sürücü verilerini formatlama
+  const formatDriverData = (driver) => {
+    const documentStatus = checkDocumentStatus(driver);
+    return {
+      ...driver,
+      status: driver.status === 'active' ? 'Aktif' : 
+             driver.status === 'inactive' ? 'Pasif' : driver.status,
+      documents: driver.documents || [],
+      hasExpiredDocuments: documentStatus.hasExpiredDocuments,
+      missingDocuments: documentStatus.missingDocuments,
+      activeShipments: driver.activeShipments || 0,
+      completedShipments: driver.completedShipments || 0
+    };
+  };
+
   // Tüm sürücüleri API'den çekme
   useEffect(() => {
     const fetchAllDrivers = async () => {
@@ -89,32 +136,18 @@ export default function DriversPage() {
           return;
         }
         
-        // API'den tüm sürücüleri çek (filtresiz)
         const response = await axios.get(`/api/admin/drivers`, {
           headers: {
             Authorization: `Bearer ${token}`
           },
           params: {
-            status: '',  // Filtresiz
+            status: '',
             search: ''
           }
         });
         
         if (response.data && response.data.drivers) {
-          // API yanıtındaki sürücüleri formatlayarak ayarla
-          const formattedDrivers = response.data.drivers.map(driver => ({
-            ...driver,
-            // API'den gelen status format uyumsuzluğunu düzelt
-            status: driver.status === 'active' ? 'Aktif' : 
-                   driver.status === 'inactive' ? 'Pasif' : driver.status,
-            // Eksik alanlar için varsayılan değerler
-            documents: [],
-            hasExpiredDocuments: false,
-            // Taşımayla ilgili varsayılan değerler
-            activeShipments: 0,
-            completedShipments: 0
-          }));
-          
+          const formattedDrivers = response.data.drivers.map(formatDriverData);
           setAllDrivers(formattedDrivers);
         }
       } catch (error) {
@@ -134,77 +167,48 @@ export default function DriversPage() {
         setLoading(true);
         setError(null);
         
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('userData');
         
-        if (!token) {
-          console.log('Token bulunamadı, login sayfasına yönlendiriliyor');
-          router.replace('/admin');
+        if (!token || !userData) {
+          router.push('/admin');
+          return;
+        }
+
+        const user = JSON.parse(userData);
+        const allowedRoles = ['admin', 'super_admin', 'editor', 'support'];
+        const hasAllowedRole = user.roles?.some(role => allowedRoles.includes(role)) || allowedRoles.includes(user.role);
+        
+        if (!hasAllowedRole && user.email !== 'mert@tasiapp.com') {
+          router.push('/admin/dashboard');
           return;
         }
         
-        // API'den sürücüleri çek
-        const statusParam = selectedTab === 'all' ? '' : 
-                            selectedTab === 'active' ? 'active' :
-                            selectedTab === 'passive' ? 'inactive' :
-                            selectedTab === 'documents' ? 'documents' : '';
-        
-        console.log('Sürücüler API isteği başlatılıyor...');
         const response = await axios.get(`/api/admin/drivers`, {
           headers: {
             Authorization: `Bearer ${token}`
           },
           params: {
-            status: statusParam,
-            search: searchTerm
+            search: searchTerm,
+            page: currentPage,
+            limit: 10,
+            status: selectedTab === 'all' ? '' : selectedTab
           }
         });
         
-        console.log('Sürücüler API yanıtı:', response.data);
-        
         if (response.data && response.data.drivers) {
-          // API yanıtındaki sürücüleri formatlayarak ayarla
-          const formattedDrivers = response.data.drivers.map(driver => ({
-            ...driver,
-            // API'den gelen status format uyumsuzluğunu düzelt
-            status: driver.status === 'active' ? 'Aktif' : 
-                   driver.status === 'inactive' ? 'Pasif' : driver.status,
-            // Eksik alanlar için varsayılan değerler
-            documents: [],
-            hasExpiredDocuments: false,
-            // Taşımayla ilgili varsayılan değerler
-            activeShipments: 0,
-            completedShipments: 0
-          }));
-          
+          const formattedDrivers = response.data.drivers.map(formatDriverData);
           setDrivers(formattedDrivers);
-          console.log(`${formattedDrivers.length} sürücü başarıyla yüklendi`);
-        } else {
-          console.error('API yanıtında sürücü verisi bulunamadı');
-          setError('Sürücü verisi bulunamadı. API yanıtı geçersiz format içeriyor.');
-        }
-
-        try {
-          // Şirketleri de çek (dropdown için)
-          const companiesResponse = await axios.get(`/api/admin/carriers`, {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          });
-          
-          if (companiesResponse.data && companiesResponse.data.carriers) {
-            setCompanies(companiesResponse.data.carriers);
-          }
-        } catch (companyError) {
-          console.error('Şirketler yüklenirken hata:', companyError);
-          // Şirketler yüklenmese bile sürücüleri göstermeye devam et
+          setTotalPages(response.data.totalPages || 1);
+          setTotalDrivers(response.data.total || 0);
         }
       } catch (error) {
         console.error('Sürücüler yüklenirken hata:', error);
         
-        if (error.response && error.response.status === 401) {
-          localStorage.removeItem('auth_token');
+        if (error.response?.status === 401) {
+          localStorage.removeItem('token');
           localStorage.removeItem('userData');
-          router.replace('/admin');
+          router.push('/admin');
           return;
         }
         
@@ -214,10 +218,8 @@ export default function DriversPage() {
       }
     };
     
-    if (router) {
-      fetchDrivers();
-    }
-  }, [router, selectedTab, searchTerm]);
+    fetchDrivers();
+  }, [currentPage, searchTerm, selectedTab]);
 
   const tabs = [
     { id: 'all', name: 'Tüm Sürücüler' },
@@ -446,6 +448,137 @@ export default function DriversPage() {
     }
   };
 
+  // Belge yükleme fonksiyonu
+  const handleDocumentUpload = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      
+      const token = localStorage.getItem('auth_token');
+      
+      if (!token) {
+        console.log('Token bulunamadı, login sayfasına yönlendiriliyor');
+        router.replace('/admin');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('type', newDocument.type);
+      formData.append('validUntil', newDocument.validUntil);
+      formData.append('file', newDocument.file);
+      
+      if (showDriverDocumentsModal.id === 'new') {
+        // Yeni sürücü için belge yükleme
+        formData.append('driverId', 'new');
+      } else {
+        // Mevcut sürücü için belge yükleme
+        formData.append('driverId', showDriverDocumentsModal.id);
+      }
+
+      const response = await axios.post('/api/admin/documents', formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      if (response.data && response.data.success) {
+        // Belge yüklendi, modalı kapat ve state'i sıfırla
+        setNewDocument({
+          type: '',
+          validUntil: '',
+          file: null
+        });
+        
+        // Sürücü listesini güncelle
+        const updatedDrivers = await axios.get('/api/admin/drivers', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        
+        if (updatedDrivers.data && updatedDrivers.data.drivers) {
+          setDrivers(updatedDrivers.data.drivers);
+        }
+      }
+    } catch (error) {
+      console.error('Belge yüklenirken hata:', error);
+      alert('Belge yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Belge güncelleme fonksiyonu
+  const handleUpdateDocument = async (documentId) => {
+    try {
+      setLoading(true);
+      
+      const token = localStorage.getItem('auth_token');
+      
+      if (!token) {
+        console.log('Token bulunamadı, login sayfasına yönlendiriliyor');
+        router.replace('/admin');
+        return;
+      }
+      
+      // Belge güncelleme modalını aç
+      setShowDriverDocumentsModal({
+        ...showDriverDocumentsModal,
+        editingDocumentId: documentId
+      });
+    } catch (error) {
+      console.error('Belge güncellenirken hata:', error);
+      alert('Belge güncellenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Belge silme fonksiyonu
+  const handleDeleteDocument = async (documentId) => {
+    if (!window.confirm('Bu belgeyi silmek istediğinize emin misiniz?')) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      
+      const token = localStorage.getItem('auth_token');
+      
+      if (!token) {
+        console.log('Token bulunamadı, login sayfasına yönlendiriliyor');
+        router.replace('/admin');
+        return;
+      }
+      
+      const response = await axios.delete(`/api/admin/documents`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        params: { id: documentId }
+      });
+      
+      if (response.data && response.data.success) {
+        // Belge silindi, sürücü listesini güncelle
+        const updatedDrivers = await axios.get('/api/admin/drivers', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        
+        if (updatedDrivers.data && updatedDrivers.data.drivers) {
+          setDrivers(updatedDrivers.data.drivers);
+        }
+      }
+    } catch (error) {
+      console.error('Belge silinirken hata:', error);
+      alert('Belge silinirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AdminLayout title="Sürücü Yönetimi" isBlurred={showDriverDetailModal || showDeleteConfirm || showDriverDocumentsModal || showAddDriverModal || showEditDriverModal}>
       <div className={showDriverDetailModal || showDeleteConfirm || showDriverDocumentsModal || showAddDriverModal || showEditDriverModal ? "blur-sm" : ""}>
@@ -487,39 +620,75 @@ export default function DriversPage() {
         </div>
 
         {/* İstatistik Kartları */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <div className="bg-blue-100 p-3 rounded-full mr-4">
-                <FaIdCard className="text-blue-600" />
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {/* Toplam Sürücü */}
+          <div 
+            className="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => setSelectedTab('all')}
+          >
+            <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-gray-500 text-sm">Toplam Sürücü</h3>
-                <p className="text-2xl font-bold">{allDrivers.length}</p>
+                <p className="text-sm font-medium text-gray-600">Toplam Sürücü</p>
+                <p className="text-2xl font-semibold text-gray-900">{allDrivers.length}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-full">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
               </div>
             </div>
           </div>
-          
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <div className="bg-green-100 p-3 rounded-full mr-4">
-                <FaCheck className="text-green-600" />
-              </div>
+
+          {/* Aktif Sürücüler */}
+          <div 
+            className="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => setSelectedTab('active')}
+          >
+            <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-gray-500 text-sm">Aktif Sürücüler</h3>
-                <p className="text-2xl font-bold">{allDrivers.filter(d => d.status === 'Aktif').length}</p>
+                <p className="text-sm font-medium text-gray-600">Aktif Sürücüler</p>
+                <p className="text-2xl font-semibold text-green-600">{allDrivers.filter(d => d.status === 'Aktif').length}</p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-full">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </div>
             </div>
           </div>
-          
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <div className="bg-red-100 p-3 rounded-full mr-4">
-                <FaExclamationCircle className="text-red-600" />
-              </div>
+
+          {/* Pasif Sürücüler */}
+          <div 
+            className="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => setSelectedTab('passive')}
+          >
+            <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-gray-500 text-sm">Belgesi Eksik</h3>
-                <p className="text-2xl font-bold">{allDrivers.filter(d => d.hasExpiredDocuments).length}</p>
+                <p className="text-sm font-medium text-gray-600">Süresi Geçmiş Belge</p>
+                <p className="text-2xl font-semibold text-yellow-600">{allDrivers.filter(d => d.status === 'Pasif').length}</p>
+              </div>
+              <div className="p-3 bg-yellow-100 rounded-full">
+                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Belgesi Eksik */}
+          <div 
+            className="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => setSelectedTab('document_required')}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Belgesi Eksik</p>
+                <p className="text-2xl font-semibold text-red-600">{allDrivers.filter(d => d.hasExpiredDocuments).length}</p>
+              </div>
+              <div className="p-3 bg-red-100 rounded-full">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
               </div>
             </div>
           </div>
@@ -787,6 +956,7 @@ export default function DriversPage() {
                             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Belge</th>
                             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durum</th>
                             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Son Tarih</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -813,17 +983,46 @@ export default function DriversPage() {
                               <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
                                 {document.validUntil || "Süresiz"}
                               </td>
+                              <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                                <div className="flex space-x-2">
+                                  <button 
+                                    className="text-blue-600 hover:text-blue-900"
+                                    onClick={() => window.open(document.fileUrl, '_blank')}
+                                    title="Görüntüle"
+                                  >
+                                    <FaEye className="w-5 h-5" />
+                                  </button>
+                                  <button 
+                                    className="text-orange-600 hover:text-orange-900"
+                                    onClick={() => handleUpdateDocument(document.id)}
+                                    title="Güncelle"
+                                  >
+                                    <FaEdit className="w-5 h-5" />
+                                  </button>
+                                </div>
+                              </td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
+                      
+                      {showDriverDetailModal.missingDocuments?.length > 0 && (
+                        <div className="mt-4 p-4 bg-red-50 rounded-lg">
+                          <h5 className="text-sm font-medium text-red-800 mb-2">Eksik Belgeler:</h5>
+                          <ul className="list-disc list-inside text-sm text-red-700">
+                            {showDriverDetailModal.missingDocuments.map((doc, index) => (
+                              <li key={index}>{doc.name}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                       
                       <div className="mt-4">
                         <button 
                           className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded flex items-center"
                           onClick={() => setShowDriverDocumentsModal(showDriverDetailModal)}
                         >
-                          <FaFileAlt className="mr-2" /> Belgeleri Görüntüle
+                          <FaFileAlt className="mr-2" /> Belgeleri Yönet
                         </button>
                       </div>
                     </div>
@@ -860,99 +1059,162 @@ export default function DriversPage() {
         </div>
       )}
 
-      {/* Sürücü Belgeleri Modal */}
+      {/* Belge Yönetimi Modal */}
       {showDriverDocumentsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto" onClick={(e) => {
-          if (e.target === e.currentTarget) setShowDriverDocumentsModal(null);
-        }}>
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-auto">
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="font-semibold text-lg">{showDriverDocumentsModal.name} - Sürücü Belgeleri</h3>
-              <button 
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">
+                {showDriverDocumentsModal.name} - Belge Yönetimi
+              </h3>
+              <button
                 onClick={() => setShowDriverDocumentsModal(null)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-400 hover:text-gray-500"
               >
-                <FaTimes />
+                <FaTimes className="w-6 h-6" />
               </button>
             </div>
-            <div className="p-6">
-              {showDriverDocumentsModal.documents && showDriverDocumentsModal.documents.length > 0 ? (
-                <>
-                  <div className="mb-4">
-                    <h4 className="text-lg font-medium text-gray-800 mb-2">Belgeler</h4>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200 mb-6">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Belge Adı</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tür</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Son Geçerlilik Tarihi</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durum</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {showDriverDocumentsModal.documents.map((document) => (
-                            <tr key={document.id} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                                {document.name}
-                                {document.type === 'Zorunlu' && <span className="text-red-500"> *</span>}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{document.type}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
-                                {document.validUntil ? (
-                                  document.status === 'Süresi Dolmuş' ? (
-                                    <><FaExclamationCircle className="text-red-500 mr-2" /> {document.validUntil}</>
-                                  ) : (
-                                    <>{document.validUntil}</>
-                                  )
-                                ) : (
-                                  <span className="text-gray-400">Süresiz</span>
-                                )}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                  document.status === 'Aktif' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                }`}>
-                                  {document.status}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <button 
-                                  className="text-blue-600 hover:text-blue-900 mr-3"
-                                  title="Belgeyi Görüntüle"
-                                  onClick={() => window.open(document.fileUrl, '_blank')}
-                                >
-                                  <FaEye size={18} />
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">Bu sürücü için henüz belge kaydı bulunmamaktadır.</p>
-                </div>
-              )}
 
-              <div className="mt-6 flex justify-between">
-                <div>
-                  <button 
-                    className="bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded flex items-center"
-                  >
-                    <FaPlus className="mr-2" /> Belge Ekle
-                  </button>
+            <div className="space-y-6">
+              {/* Belge Yükleme Formu */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-lg font-medium text-gray-800 mb-4">Yeni Belge Yükle</h4>
+                <form onSubmit={handleDocumentUpload} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Belge Türü
+                    </label>
+                    <select
+                      name="documentType"
+                      value={newDocument.type}
+                      onChange={(e) => setNewDocument({ ...newDocument, type: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    >
+                      <option value="">Seçiniz</option>
+                      <option value="Ehliyet Ön Yüz">Ehliyet Ön Yüz</option>
+                      <option value="Ehliyet Arka Yüz">Ehliyet Arka Yüz</option>
+                      <option value="SRC Belgesi">SRC Belgesi</option>
+                      <option value="Sağlık Raporu">Sağlık Raporu</option>
+                      <option value="Psikoteknik Belgesi">Psikoteknik Belgesi</option>
+                      <option value="Adli Sicil Kaydı">Adli Sicil Kaydı</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Geçerlilik Tarihi
+                    </label>
+                    <input
+                      type="date"
+                      name="validUntil"
+                      value={newDocument.validUntil}
+                      onChange={(e) => setNewDocument({ ...newDocument, validUntil: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Belge Dosyası
+                    </label>
+                    <input
+                      type="file"
+                      name="file"
+                      onChange={(e) => setNewDocument({ ...newDocument, file: e.target.files[0] })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded"
+                    >
+                      Yükle
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Mevcut Belgeler */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-lg font-medium text-gray-800 mb-4">Mevcut Belgeler</h4>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Belge</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durum</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Son Tarih</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {showDriverDocumentsModal.documents && showDriverDocumentsModal.documents.length > 0 ? (
+                        showDriverDocumentsModal.documents.map((document) => (
+                          <tr key={document.id}>
+                            <td className="px-4 py-2 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <FaFileAlt className="text-gray-400 mr-2" />
+                                <div className="text-sm font-medium text-gray-900">
+                                  {document.name}
+                                  {document.type === 'Zorunlu' && <span className="text-red-500"> *</span>}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-2 whitespace-nowrap">
+                              <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                document.status === 'Aktif' ? 'bg-green-100 text-green-800' : 
+                                document.status === 'Süresi Dolmuş' ? 'bg-red-100 text-red-800' : 
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {document.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                              {document.validUntil || "Süresiz"}
+                            </td>
+                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                              <div className="flex space-x-2">
+                                <button 
+                                  className="text-blue-600 hover:text-blue-900"
+                                  onClick={() => window.open(document.fileUrl, '_blank')}
+                                  title="Görüntüle"
+                                >
+                                  <FaEye className="w-5 h-5" />
+                                </button>
+                                <button 
+                                  className="text-orange-600 hover:text-orange-900"
+                                  onClick={() => handleUpdateDocument(document.id)}
+                                  title="Güncelle"
+                                >
+                                  <FaEdit className="w-5 h-5" />
+                                </button>
+                                <button 
+                                  className="text-red-600 hover:text-red-900"
+                                  onClick={() => handleDeleteDocument(document.id)}
+                                  title="Sil"
+                                >
+                                  <FaTrash className="w-5 h-5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="4" className="px-4 py-4 text-center text-gray-500">
+                            Henüz belge yüklenmemiş
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
-                <button 
-                  onClick={() => setShowDriverDocumentsModal(null)}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded flex items-center"
-                >
-                  <FaTimes className="mr-2" /> Kapat
-                </button>
               </div>
             </div>
           </div>
@@ -1144,6 +1406,12 @@ export default function DriversPage() {
                     className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded"
                   >
                     İptal
+                  </button>
+                  <button 
+                    onClick={() => setShowDriverDocumentsModal({ id: 'new', name: 'Yeni Sürücü Belgeleri' })}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded flex items-center"
+                  >
+                    <FaFileAlt className="mr-2" /> Belgeler
                   </button>
                   <button 
                     onClick={addNewDriver}

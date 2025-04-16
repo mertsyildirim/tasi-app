@@ -15,6 +15,7 @@
     "seed-db": "node src/scripts/seed-database.js"
   },
   "dependencies": {
+    "@auth/mongodb-adapter": "^3.8.0",
     "@google-cloud/storage": "^7.16.0",
     "@googlemaps/js-api-loader": "^1.16.8",
     "@heroicons/react": "^2.1.1",
@@ -43,6 +44,7 @@
     "react": "^18",
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^18.3.1",
+    "react-hot-toast": "^2.5.2",
     "react-icons": "^5.5.0",
     "react-leaflet": "^4.2.1",
     "react-toastify": "^11.0.5",
@@ -51,6 +53,7 @@
   },
   "devDependencies": {
     "@netlify/plugin-nextjs": "^5.10.3",
+    "@tailwindcss/forms": "^0.5.10",
     "@types/node": "^20",
     "@types/react": "18.3.20",
     "@types/react-dom": "^18",

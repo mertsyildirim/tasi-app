@@ -1,135 +1,175 @@
-import { connectToDatabase } from '../../../src/lib/mongodb';
-import { setupCORS, handleOptionsRequest, sendSuccess, sendError, logRequest } from '../../../src/lib/api-utils';
+import { MongoClient } from 'mongodb';
+import { requireAdmin } from '../../../middleware/authCheck';
 
-export default async function handler(req, res) {
-  // CORS ayarlarını ekle
-  setupCORS(res);
-  
-  // OPTIONS isteğini işle
-  if (handleOptionsRequest(req, res)) {
-    return;
-  }
-  
-  // İsteği logla
-  logRequest(req);
-  
-  // Sadece GET isteklerini işle
+async function handler(req, res) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', ['GET']);
-    return sendError(res, `Method ${req.method} not allowed`, 405);
+    return res.status(405).json({ 
+      success: false,
+      error: `Method ${req.method} not allowed` 
+    });
   }
-  
+
   try {
-    // Veritabanına bağlan
-    const conn = await connectToDatabase();
-    const db = conn.connection.db;
+    // MongoDB bağlantı dizesi
+    const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/tasiapp';
     
-    // Tüm istatistikleri veritabanından çek
-    const [
-      userCount,
-      companyCount,
-      driverCount,
-      vehicleCount,
-      requestCount,
-      activeTransportCount,
-      completedTransportCount,
-      pendingTransportCount,
-      recentUsers,
-      recentCompanies,
-      recentRequests
-    ] = await Promise.all([
-      db.collection('users').countDocuments(),
-      db.collection('companies').countDocuments(),
-      db.collection('drivers').countDocuments(),
-      db.collection('vehicles').countDocuments(),
-      db.collection('transportRequests').countDocuments(),
-      db.collection('transports').countDocuments({ status: 'active' }),
-      db.collection('transports').countDocuments({ status: 'completed' }),
-      db.collection('transports').countDocuments({ status: 'pending' }),
-      db.collection('users').find().sort({ createdAt: -1 }).limit(5).toArray(),
-      db.collection('companies').find().sort({ createdAt: -1 }).limit(5).toArray(),
-      db.collection('transportRequests').find().sort({ createdAt: -1 }).limit(5).toArray()
-    ]);
+    // Bağlantı oluştur
+    const client = new MongoClient(uri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
     
-    // Aylık taşıma trend verileri
-    const monthlyTransportData = [];
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    
-    // Son 6 ay için aylık taşıma verilerini topla
-    for (let i = 5; i >= 0; i--) {
-      const month = now.getMonth() - i;
-      const year = currentYear + Math.floor(month / 12);
-      const adjustedMonth = ((month % 12) + 12) % 12; // Negatif ay değerini işle
+    try {
+      // Bağlan
+      await client.connect();
+      console.log('MongoDB bağlantısı başarılı');
       
-      const startDate = new Date(year, adjustedMonth, 1);
-      const endDate = new Date(year, adjustedMonth + 1, 0);
+      // Veritabanını seç
+      const db = client.db('tasiapp');
       
-      const count = await db.collection('transports').countDocuments({
-        createdAt: { $gte: startDate, $lte: endDate }
+      // Tüm istatistikleri paralel olarak al
+      const [
+        totalUsers,
+        totalCompanies,
+        totalDrivers,
+        totalVehicles,
+        totalTransportRequests,
+        activeTransports,
+        completedTransports,
+        pendingTransports,
+        recentTransportRequests,
+        recentCompanies,
+        recentUsers
+      ] = await Promise.all([
+        // Toplam kullanıcı sayısı
+        db.collection('users').countDocuments(),
+        
+        // Toplam şirket sayısı
+        db.collection('companies').countDocuments(),
+        
+        // Toplam sürücü sayısı
+        db.collection('drivers').countDocuments(),
+        
+        // Toplam araç sayısı
+        db.collection('vehicles').countDocuments({ status: { $ne: 'deleted' } }),
+        
+        // Toplam taşıma isteği
+        db.collection('transport_requests').countDocuments(),
+        
+        // Aktif taşıma sayısı
+        db.collection('transport_requests').countDocuments({ 
+          status: { $in: ['accepted', 'in_progress'] }
+        }),
+        
+        // Tamamlanan taşıma sayısı
+        db.collection('transport_requests').countDocuments({ 
+          status: 'completed'
+        }),
+        
+        // Bekleyen taşıma isteği sayısı
+        db.collection('transport_requests').countDocuments({ 
+          status: 'pending'
+        }),
+        
+        // Son 10 taşıma isteği
+        db.collection('transport_requests')
+          .find({})
+          .sort({ createdAt: -1 })
+          .limit(10)
+          .toArray(),
+        
+        // Son 5 kayıt olan şirket
+        db.collection('companies')
+          .find({})
+          .sort({ createdAt: -1 })
+          .limit(5)
+          .toArray(),
+        
+        // Son 10 kayıt olan kullanıcı
+        db.collection('users')
+          .find({})
+          .sort({ createdAt: -1 })
+          .limit(10)
+          .project({ password: 0 })
+          .toArray()
+      ]);
+      
+      // Son 6 aydaki taşıma isteği trendleri
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      sixMonthsAgo.setDate(1);
+      sixMonthsAgo.setHours(0, 0, 0, 0);
+      
+      const monthlyTransportData = await db.collection('transport_requests').aggregate([
+        {
+          $match: {
+            createdAt: { $gte: sixMonthsAgo }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              year: { $year: '$createdAt' },
+              month: { $month: '$createdAt' }
+            },
+            count: { $sum: 1 },
+            completed: {
+              $sum: {
+                $cond: [{ $eq: ['$status', 'completed'] }, 1, 0]
+              }
+            },
+            cancelled: {
+              $sum: {
+                $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0]
+              }
+            }
+          }
+        },
+        {
+          $sort: {
+            '_id.year': 1,
+            '_id.month': 1
+          }
+        }
+      ]).toArray();
+      
+      // API cevabını hazırla
+      return res.status(200).json({
+        success: true,
+        data: {
+          counts: {
+            users: totalUsers,
+            companies: totalCompanies,
+            drivers: totalDrivers,
+            vehicles: totalVehicles,
+            transportRequests: totalTransportRequests,
+            activeTransports,
+            completedTransports,
+            pendingTransports
+          },
+          recent: {
+            transportRequests: recentTransportRequests,
+            companies: recentCompanies,
+            users: recentUsers
+          },
+          trends: {
+            monthlyTransportData
+          }
+        }
       });
-      
-      monthlyTransportData.push({
-        month: startDate.toLocaleString('tr-TR', { month: 'short' }),
-        count
-      });
+    } finally {
+      // Bağlantıyı kapat
+      await client.close();
     }
-    
-    // Kullanıcı verilerini formatla
-    const formattedUsers = recentUsers.map(user => ({
-      id: user._id.toString(),
-      name: user.name,
-      email: user.email,
-      role: user.roles?.[0] || 'customer',
-      status: user.isActive ? 'active' : 'inactive',
-      createdAt: user.createdAt
-    }));
-    
-    // Şirket verilerini formatla
-    const formattedCompanies = recentCompanies.map(company => ({
-      id: company._id.toString(),
-      name: company.name,
-      email: company.email || '',
-      phone: company.phone || '',
-      status: company.status || 'active',
-      createdAt: company.createdAt
-    }));
-    
-    // Taşıma talepleri verilerini formatla
-    const formattedRequests = recentRequests.map(request => ({
-      id: request._id.toString(),
-      title: request.title || `Taşıma #${request._id.toString().substr(-6)}`,
-      status: request.status || 'pending',
-      origin: request.origin?.address || 'Belirtilmemiş',
-      destination: request.destination?.address || 'Belirtilmemiş',
-      createdAt: request.createdAt
-    }));
-    
-    // Tüm verileri bir araya getir
-    const dashboardData = {
-      counts: {
-        users: userCount,
-        companies: companyCount,
-        drivers: driverCount,
-        vehicles: vehicleCount,
-        transportRequests: requestCount,
-        activeTransports: activeTransportCount,
-        completedTransports: completedTransportCount,
-        pendingTransports: pendingTransportCount
-      },
-      recent: {
-        users: formattedUsers,
-        companies: formattedCompanies,
-        transportRequests: formattedRequests
-      },
-      trends: {
-        monthlyTransportData
-      }
-    };
-    
-    return sendSuccess(res, dashboardData);
   } catch (error) {
-    console.error('Dashboard API error:', error);
-    return sendError(res, 'Dashboard verileri yüklenirken bir hata oluştu', 500, error);
+    console.error('Get admin dashboard data error:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Dashboard verileri getirilirken hata oluştu',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
-} 
+}
+
+export default requireAdmin(handler); 

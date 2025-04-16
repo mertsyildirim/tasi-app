@@ -30,12 +30,17 @@ const PERMISSIONS = {
   CUSTOMER_ADD: 'customer-add',      // Müşteri ekleme
   CUSTOMER_EDIT: 'customer-edit',    // Müşteri düzenleme
   CUSTOMER_DELETE: 'customer-delete', // Müşteri silme
+  CUSTOMER_ORDERS: 'customer-orders',
+  CUSTOMER_PAYMENTS: 'customer-payments',
+  CUSTOMER_REPORTS: 'customer-reports',
   
   // Sipariş/Taşıma İzinleri
   ORDER_VIEW: 'order-view',         // Siparişleri görüntüleme
   ORDER_ADD: 'order-add',           // Sipariş ekleme
   ORDER_EDIT: 'order-edit',         // Sipariş düzenleme
   ORDER_DELETE: 'order-delete',     // Sipariş silme
+  ORDER_TRACK: 'order-track',
+  ORDER_REPORT: 'order-report',
   
   // Ayarlar İzinleri
   SETTINGS_VIEW: 'settings-view',   // Ayarları görüntüleme
@@ -43,7 +48,11 @@ const PERMISSIONS = {
   
   // Kullanıcı Yönetimi İzinleri
   USER_MANAGEMENT: 'user-management',         // Kullanıcı yönetimi
-  PERMISSION_MANAGEMENT: 'permission-management'  // İzin yönetimi
+  PERMISSION_MANAGEMENT: 'permission-management',  // İzin yönetimi
+  
+  // Yeni müşteri rolleri
+  CUSTOMER_PERSONAL: 'customer_personal',
+  CUSTOMER_COMPANY: 'customer_company',
 };
 
 /**
@@ -61,12 +70,19 @@ const ROLES = {
   
   // Müşteri - Sadece kendi içeriğini görebilir
   CUSTOMER: 'customer',
+  CUSTOMER_PREMIUM: 'customer-premium',
+  CUSTOMER_BUSINESS: 'customer-business',
+  CUSTOMER_WHOLESALE: 'customer-wholesale',
   
   // Sürücü - Sürücü portalına erişebilir
   DRIVER: 'driver',
   
   // Taşıma Şirketi - Şirket portalına erişebilir
-  COMPANY: 'company'
+  COMPANY: 'company',
+  
+  // Yeni müşteri rolleri
+  CUSTOMER_PERSONAL: 'customer_personal',
+  CUSTOMER_COMPANY: 'customer_company',
 };
 
 /**
@@ -102,15 +118,71 @@ const ROLE_PERMISSIONS = {
   ],
   
   [ROLES.CUSTOMER]: [
-    // Müşteri sadece kendi içeriğini görebilir
+    PERMISSIONS.ORDER_VIEW,
+    PERMISSIONS.ORDER_TRACK,
+    PERMISSIONS.CUSTOMER_ORDERS,
+    PERMISSIONS.CUSTOMER_PAYMENTS
+  ],
+  
+  [ROLES.CUSTOMER_PREMIUM]: [
+    PERMISSIONS.ORDER_VIEW,
+    PERMISSIONS.ORDER_TRACK,
+    PERMISSIONS.CUSTOMER_ORDERS,
+    PERMISSIONS.CUSTOMER_PAYMENTS,
+    PERMISSIONS.CUSTOMER_REPORTS,
+    PERMISSIONS.ORDER_REPORT
+  ],
+  
+  [ROLES.CUSTOMER_BUSINESS]: [
+    PERMISSIONS.ORDER_VIEW,
+    PERMISSIONS.ORDER_TRACK,
+    PERMISSIONS.CUSTOMER_ORDERS,
+    PERMISSIONS.CUSTOMER_PAYMENTS,
+    PERMISSIONS.CUSTOMER_REPORTS,
+    PERMISSIONS.ORDER_REPORT,
+    PERMISSIONS.ORDER_ADD,
+    PERMISSIONS.ORDER_EDIT
+  ],
+  
+  [ROLES.CUSTOMER_WHOLESALE]: [
+    PERMISSIONS.ORDER_VIEW,
+    PERMISSIONS.ORDER_TRACK,
+    PERMISSIONS.CUSTOMER_ORDERS,
+    PERMISSIONS.CUSTOMER_PAYMENTS,
+    PERMISSIONS.CUSTOMER_REPORTS,
+    PERMISSIONS.ORDER_REPORT,
+    PERMISSIONS.ORDER_ADD,
+    PERMISSIONS.ORDER_EDIT,
+    PERMISSIONS.SETTINGS_VIEW
   ],
   
   [ROLES.DRIVER]: [
-    // Sürücü sadece kendi içeriğini görebilir
+    PERMISSIONS.ORDER_VIEW,
+    PERMISSIONS.ORDER_TRACK
   ],
   
   [ROLES.COMPANY]: [
-    // Şirket sadece kendi içeriğini görebilir
+    PERMISSIONS.ORDER_VIEW,
+    PERMISSIONS.ORDER_TRACK,
+    PERMISSIONS.DRIVER_VIEW,
+    PERMISSIONS.DRIVER_ADD,
+    PERMISSIONS.DRIVER_EDIT
+  ],
+  
+  [ROLES.CUSTOMER_PERSONAL]: [
+    PERMISSIONS.ORDER_VIEW,
+    PERMISSIONS.ORDER_TRACK,
+    PERMISSIONS.CUSTOMER_ORDERS,
+    PERMISSIONS.CUSTOMER_PAYMENTS
+  ],
+  
+  [ROLES.CUSTOMER_COMPANY]: [
+    PERMISSIONS.ORDER_VIEW,
+    PERMISSIONS.ORDER_TRACK,
+    PERMISSIONS.CUSTOMER_ORDERS,
+    PERMISSIONS.CUSTOMER_PAYMENTS,
+    PERMISSIONS.CUSTOMER_REPORTS,
+    PERMISSIONS.ORDER_REPORT
   ]
 };
 
@@ -165,9 +237,27 @@ const getRolesWithPermissions = () => {
     },
     {
       id: ROLES.CUSTOMER,
-      name: 'Müşteri',
+      name: 'Standart Müşteri',
       permissionCount: ROLE_PERMISSIONS[ROLES.CUSTOMER].length,
-      description: 'Standart kullanıcı'
+      description: 'Temel müşteri yetkileri'
+    },
+    {
+      id: ROLES.CUSTOMER_PREMIUM,
+      name: 'Premium Müşteri',
+      permissionCount: ROLE_PERMISSIONS[ROLES.CUSTOMER_PREMIUM].length,
+      description: 'Gelişmiş müşteri yetkileri'
+    },
+    {
+      id: ROLES.CUSTOMER_BUSINESS,
+      name: 'Kurumsal Müşteri',
+      permissionCount: ROLE_PERMISSIONS[ROLES.CUSTOMER_BUSINESS].length,
+      description: 'Kurumsal müşteri yetkileri'
+    },
+    {
+      id: ROLES.CUSTOMER_WHOLESALE,
+      name: 'Toptan Müşteri',
+      permissionCount: ROLE_PERMISSIONS[ROLES.CUSTOMER_WHOLESALE].length,
+      description: 'Toptan müşteri yetkileri'
     },
     {
       id: ROLES.DRIVER,
@@ -180,6 +270,18 @@ const getRolesWithPermissions = () => {
       name: 'Şirket',
       permissionCount: ROLE_PERMISSIONS[ROLES.COMPANY].length,
       description: 'Taşıma şirketi'
+    },
+    {
+      id: ROLES.CUSTOMER_PERSONAL,
+      name: 'Bireysel Müşteri',
+      permissionCount: ROLE_PERMISSIONS[ROLES.CUSTOMER_PERSONAL].length,
+      description: 'Bireysel müşteri yetkileri'
+    },
+    {
+      id: ROLES.CUSTOMER_COMPANY,
+      name: 'Kurumsal Müşteri',
+      permissionCount: ROLE_PERMISSIONS[ROLES.CUSTOMER_COMPANY].length,
+      description: 'Kurumsal müşteri yetkileri'
     }
   ];
 };
@@ -206,13 +308,18 @@ const getAllPermissions = () => {
       PERMISSIONS.CUSTOMER_VIEW,
       PERMISSIONS.CUSTOMER_ADD,
       PERMISSIONS.CUSTOMER_EDIT,
-      PERMISSIONS.CUSTOMER_DELETE
+      PERMISSIONS.CUSTOMER_DELETE,
+      PERMISSIONS.CUSTOMER_ORDERS,
+      PERMISSIONS.CUSTOMER_PAYMENTS,
+      PERMISSIONS.CUSTOMER_REPORTS
     ],
     order: [
       PERMISSIONS.ORDER_VIEW,
       PERMISSIONS.ORDER_ADD,
       PERMISSIONS.ORDER_EDIT,
-      PERMISSIONS.ORDER_DELETE
+      PERMISSIONS.ORDER_DELETE,
+      PERMISSIONS.ORDER_TRACK,
+      PERMISSIONS.ORDER_REPORT
     ],
     settings: [
       PERMISSIONS.SETTINGS_VIEW,

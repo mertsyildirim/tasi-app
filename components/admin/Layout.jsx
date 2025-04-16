@@ -11,7 +11,7 @@ import Link from 'next/link'
 export default function AdminLayout({ children, title, fixedHeader = false }) {
   const [isMobile, setIsMobile] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [currentTime, setCurrentTime] = useState(new Date())
+  const [currentTime, setCurrentTime] = useState(null)
   const [showNotifications, setShowNotifications] = useState(false)
   const [showAllNotifications, setShowAllNotifications] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
@@ -24,99 +24,26 @@ export default function AdminLayout({ children, title, fixedHeader = false }) {
   // Bildirimleri API'den getir
   const fetchNotifications = async () => {
     try {
-      setLoading(true);
-      
-      // Token kontrol et
-      const token = localStorage.getItem('auth_token');
-      
+      const token = localStorage.getItem('token');
       if (!token) {
-        console.error('Token bulunamadı');
-        // Hata durumunda örnek bildirimler oluştur
-        setNotifications([
-          { 
-            id: '1', 
-            text: 'Bağlantı hatası',
-            description: 'Oturum bilgileriniz bulunamadı. Lütfen yeniden giriş yapın.',
-            time: 'Şimdi', 
-            type: 'alert',
-            url: '/admin/login'
-          }
-        ]);
+        console.warn('Token bulunamadı');
         return;
       }
-      
-      // API'ye istek at
-      const response = await fetch('/api/admin/notifications?limit=5&read=false', {
+
+      const response = await fetch('/api/admin/notifications', {
         headers: {
-          Authorization: `Bearer ${token}`
+          'Authorization': `Bearer ${token}`
         }
       });
-      
-      // Yanıtı kontrol et
+
       if (!response.ok) {
-        throw new Error(`Bildirimler getirilemedi: ${response.status}`);
+        throw new Error('Bildirimler alınamadı');
       }
-      
-      // Verileri parse et
+
       const data = await response.json();
-      console.log('Bildirimler API yanıtı:', data);
-      
-      let notificationsList = [];
-      
-      // API yanıtının yapısını kontrol et ve bildirimleri al
-      if (data.success && data.data && Array.isArray(data.data.notifications)) {
-        notificationsList = data.data.notifications;
-      } else if (data.success && Array.isArray(data.data)) {
-        // Alternatif yanıt formatı
-        notificationsList = data.data;
-      } else if (data.success && data.notifications && Array.isArray(data.notifications)) {
-        // Farklı bir alternatif yanıt formatı
-        notificationsList = data.notifications;
-      } else {
-        throw new Error('Bilinmeyen API yanıt formatı');
-      }
-      
-      // Bildirimleri formatla - tarihleri "4 saat önce" gibi formata çevir
-      const formattedNotifications = notificationsList.map(notification => {
-        // Bildirim tarihini formatlama
-        const createdAt = new Date(notification.createdAt);
-        const now = new Date();
-        const diffMs = now - createdAt;
-        const diffMins = Math.round(diffMs / 60000);
-        const diffHours = Math.round(diffMs / 3600000);
-        const diffDays = Math.round(diffMs / 86400000);
-        
-        let timeText = '';
-        if (diffMins < 60) {
-          timeText = `${diffMins} dakika önce`;
-        } else if (diffHours < 24) {
-          timeText = `${diffHours} saat önce`;
-        } else {
-          timeText = `${diffDays} gün önce`;
-        }
-        
-        return {
-          ...notification,
-          time: timeText
-        };
-      });
-      
-      setNotifications(formattedNotifications);
+      setNotifications(data.notifications || []);
     } catch (error) {
-      console.error('Bildirimler yüklenirken hata:', error);
-      // Hata durumunda örnek bildirimler oluştur
-      setNotifications([
-        { 
-          id: '1', 
-          text: 'Bağlantı hatası',
-          description: 'Bildirimler yüklenirken bir hata oluştu.',
-          time: 'Şimdi', 
-          type: 'error',
-          url: '#'
-        }
-      ]);
-    } finally {
-      setLoading(false);
+      console.error('Bildirimler alınırken hata:', error);
     }
   };
   
@@ -154,16 +81,21 @@ export default function AdminLayout({ children, title, fixedHeader = false }) {
     }
   }, [])
 
-  // Saat güncellemesi
+  // Saat güncelleme
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 1000)
-    
-    return () => {
-      clearInterval(timer)
+    // İstemci tarafında çalıştığından emin ol
+    if (typeof window !== 'undefined') {
+      // İlk render'da saati ayarla
+      setCurrentTime(new Date());
+      
+      // Her saniye saati güncelle
+      const timer = setInterval(() => {
+        setCurrentTime(new Date());
+      }, 1000);
+      
+      return () => clearInterval(timer);
     }
-  }, [])
+  }, []);
 
   // ESC tuşu ile modal'ları kapatma
   useEffect(() => {
@@ -205,28 +137,77 @@ export default function AdminLayout({ children, title, fixedHeader = false }) {
     }
   }, [showNotifications, showProfileMenu])
 
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('userData');
+        
+        if (!token || !userData) {
+          router.push('/admin');
+          return;
+        }
+
+        const user = JSON.parse(userData);
+        
+        // mert@tasipp.com için özel kontrol
+        if (user.email === 'mert@tasipp.com') {
+          return;
+        }
+
+        const allowedRoles = ['admin', 'super_admin', 'editor', 'support'];
+        const hasAllowedRole = user.roles?.some(role => allowedRoles.includes(role)) || allowedRoles.includes(user.role);
+        
+        if (!hasAllowedRole) {
+          router.push('/admin');
+          return;
+        }
+
+        // Token doğrulaması yap
+        const response = await fetch('/api/auth/check', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('userData');
+          router.push('/admin');
+        }
+      } catch (error) {
+        console.error('Yetkilendirme hatası:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('userData');
+        router.push('/admin');
+      }
+    };
+
+    checkAuth();
+  }, []);
+
   // Sidebar menü öğeleri
   const sidebarItems = [
-    { id: 'dashboard', name: 'Dashboard', icon: <FaChartLine />, path: '/admin/dashboard', exact: true },
-    { id: 'carriers', name: 'Taşıyıcılar', icon: <FaTruck />, path: '/admin/carriers', exact: false },
-    { id: 'drivers', name: 'Tüm Sürücüler', icon: <FaIdCard />, path: '/admin/drivers', exact: false },
-    { id: 'active-drivers', name: 'Aktif Sürücüler', icon: <FaIdCard />, path: '/admin/active-drivers', exact: false },
-    { id: 'vehicles', name: 'Araçlar', icon: <FaTruck />, path: '/admin/vehicles', exact: false },
-    { id: 'customers', name: 'Müşteriler', icon: <FaUser />, path: '/admin/customers', exact: false },
-    { id: 'requests', name: 'Talepler', icon: <FaClipboardList />, path: '/admin/requests', exact: false },
-    { id: 'shipments', name: 'Taşımalar', icon: <FaShoppingBag />, path: '/admin/shipments', exact: false },
-    { id: 'payments', name: 'Ödemeler', icon: <FaFileInvoiceDollar />, path: '/admin/payments', exact: false },
-    { id: 'users', name: 'Kullanıcılar', icon: <FaUsers />, path: '/admin/users', exact: false },
-    { id: 'settings', name: 'Ayarlar', icon: <FaCog />, path: '/admin/settings', exact: false },
+    { id: 'dashboard', name: 'Dashboard', icon: <FaChartLine />, path: '/admin/dashboard' },
+    { id: 'carriers', name: 'Taşıyıcılar', icon: <FaTruck />, path: '/admin/carriers' },
+    { id: 'drivers', name: 'Tüm Sürücüler', icon: <FaIdCard />, path: '/admin/drivers' },
+    { id: 'active-drivers', name: 'Aktif Sürücüler', icon: <FaIdCard />, path: '/admin/active-drivers' },
+    { id: 'vehicles', name: 'Araçlar', icon: <FaTruck />, path: '/admin/vehicles' },
+    { id: 'customers', name: 'Müşteriler', icon: <FaUser />, path: '/admin/customers' },
+    { id: 'requests', name: 'Talepler', icon: <FaClipboardList />, path: '/admin/requests' },
+    { id: 'shipments', name: 'Taşımalar', icon: <FaShoppingBag />, path: '/admin/shipments' },
+    { id: 'payments', name: 'Ödemeler', icon: <FaFileInvoiceDollar />, path: '/admin/payments' },
+    { id: 'users', name: 'Kullanıcılar', icon: <FaUsers />, path: '/admin/users' },
+    { id: 'settings', name: 'Ayarlar', icon: <FaCog />, path: '/admin/settings' },
   ]
 
   const isActivePath = (itemPath) => {
-    // URL doğrudan eşleşirse veya active değilse ve URL itemPath ile başlıyorsa
     if (itemPath === router.pathname) {
       return true;
     }
     
-    // Alt sayfalar için kontrol (örn. /admin/customers/detail gibi)
     if (itemPath !== '/admin/dashboard' && router.pathname.startsWith(itemPath)) {
       return true;
     }
@@ -290,33 +271,9 @@ export default function AdminLayout({ children, title, fixedHeader = false }) {
 
   // Çıkış yap fonksiyonu
   const handleLogout = () => {
-    console.log('Çıkış yapılıyor...');
-    // API'ye logout isteği gönderme
-    fetch('/api/auth/logout', {
-      method: 'POST',
-    })
-      .then(() => {
-        console.log('Çıkış başarılı, depolanan veriler temizleniyor');
-        // Tüm token ve kullanıcı bilgilerini temizle (her iki format için)
-        localStorage.removeItem('userData');
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        
-        // Giriş sayfasına yönlendir
-        router.push('/admin');
-      })
-      .catch(error => {
-        console.error('Çıkış yapılırken hata:', error);
-        // Hata olsa da tüm token ve kullanıcı bilgilerini temizle
-        localStorage.removeItem('userData');
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        
-        // Giriş sayfasına yönlendir
-        router.push('/admin');
-      });
+    localStorage.removeItem('token');
+    localStorage.removeItem('userData');
+    router.push('/admin');
   }
 
   // Tarih formatı
@@ -328,9 +285,12 @@ export default function AdminLayout({ children, title, fixedHeader = false }) {
 
   // Saat formatı
   const formatTime = (date) => {
-    if (!date) return ''
-    const options = { hour: '2-digit', minute: '2-digit', second: '2-digit' }
-    return date.toLocaleTimeString('tr-TR', options)
+    if (!date) return '';
+    return date.toLocaleTimeString('tr-TR', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      second: '2-digit'
+    });
   }
 
   // Sidebar genişliği

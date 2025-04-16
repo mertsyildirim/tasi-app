@@ -12,12 +12,16 @@ import {
   DirectionsRenderer 
 } from '@react-google-maps/api'
 import Link from 'next/link'
+import axios from 'axios'
+import Cookies from 'js-cookie'
 
 const libraries = ['places']
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
 
 export default function ExpressPage() {
   const router = useRouter()
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [user, setUser] = useState(null)
   const [pickup, setPickup] = useState('')
   const [delivery, setDelivery] = useState('')
   const [pickupMarker, setPickupMarker] = useState(null)
@@ -40,6 +44,29 @@ export default function ExpressPage() {
     language: "tr",
     region: "TR"
   })
+
+  useEffect(() => {
+    const token = Cookies.get('auth')
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    }
+
+    const checkAuth = async () => {
+      try {
+        const response = await axios.get('/api/auth/me')
+        if (response.data.success) {
+          setIsAuthenticated(true)
+          setUser(response.data.user)
+        } else {
+          router.push('/login')
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error)
+        router.push('/login')
+      }
+    }
+    checkAuth()
+  }, [router])
 
   useEffect(() => {
     const checkIsMobile = () => {

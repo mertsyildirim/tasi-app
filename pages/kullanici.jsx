@@ -11,7 +11,7 @@ export default function KullaniciPage() {
         <h1 className="text-2xl font-bold mb-6">Kullanıcı Sayfası</h1>
         <div className="bg-white rounded-lg shadow p-6">
           <p className="text-gray-600">Bu sayfa yapım aşamasındadır.</p>
-        </div>
+          </div>
       </div>
     </AdminLayout>
   )

@@ -128,6 +128,30 @@ export default function DashboardPage() {
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
     
+    // Giriş kontrolü ve admin yetkisi kontrolü
+    const userData = localStorage.getItem('userData') || localStorage.getItem('user');
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+    if (!userData || !token) {
+      router.replace('/admin/login');
+      return;
+    }
+    try {
+      const parsedUser = JSON.parse(userData);
+      
+      // mert@tasipp.com için özel kontrol
+      if (parsedUser.email === 'mert@tasipp.com') {
+        return;
+      }
+
+      if (!(parsedUser.roles && parsedUser.roles.includes('admin')) && parsedUser.role !== 'admin') {
+        router.replace('/admin/login');
+        return;
+      }
+    } catch (e) {
+      router.replace('/admin/login');
+      return;
+    }
+    
     if (showActivitiesModal || shipmentDetailModal || applicationDetailModal || driverLocationModal) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -138,7 +162,46 @@ export default function DashboardPage() {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'auto';
     }
-  }, [showActivitiesModal, shipmentDetailModal, applicationDetailModal, driverLocationModal, handleKeyDown]);
+  }, [showActivitiesModal, shipmentDetailModal, applicationDetailModal, driverLocationModal, handleKeyDown, router]);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        router.replace('/admin');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/auth/check', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await response.json();
+        
+        // mert@tasipp.com için özel kontrol
+        if (data.user.email === 'mert@tasipp.com') {
+          setUser(data.user);
+          return;
+        }
+        
+        if (!data.success || !(data.user.roles?.includes('admin') || data.user.role === 'admin')) {
+          router.replace('/admin');
+          return;
+        }
+
+        setUser(data.user);
+      } catch (error) {
+        console.error('Auth check error:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        router.replace('/admin');
+      }
+    };
+    
+    checkAuth();
+  }, [router]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -146,60 +209,46 @@ export default function DashboardPage() {
         setLoading(true);
         setError(null);
 
-    const userData = localStorage.getItem('userData');
-        const token = localStorage.getItem('auth_token');
-        
-        if (!userData || !token) {
-          console.log('Token veya kullanıcı bilgisi bulunamadı, login sayfasına yönlendiriliyor');
+        const token = localStorage.getItem('token');
+        if (!token) {
           router.replace('/admin');
-      return;
-    }
+          return;
+        }
 
-        try {
-    const parsedUser = JSON.parse(userData);
-          
-          if (!(parsedUser.roles && parsedUser.roles.includes('admin'))) {
-            console.log('Kullanıcı admin değil, portal sayfasına yönlendiriliyor');
-            router.replace('/portal/login');
-      return;
-    }
-    
-    setUser(parsedUser);
-
-          const response = await axios.get('/api/admin/dashboard', {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          });
-          
-          if (response.data) {
-            setDashboardStats(response.data);
+        const response = await fetch('/api/admin/dashboard', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
-        } catch (apiError) {
-          console.error('Dashboard verileri alınırken hata:', apiError);
-          
-          if (apiError.response && apiError.response.status === 401) {
-            localStorage.removeItem('userData');
-            localStorage.removeItem('auth_token');
+        });
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
             router.replace('/admin');
             return;
           }
-          
-          setError('Dashboard verileri yüklenemedi. Lütfen daha sonra tekrar deneyin.');
-        } finally {
-          setLoading(false);
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Dashboard verileri alınamadı');
+        }
+
+        const data = await response.json();
+        if (data.success) {
+          setDashboardStats(data.data);
+        } else {
+          throw new Error(data.error || 'Dashboard verileri alınamadı');
         }
       } catch (error) {
-        console.error('Veri yükleme hatası:', error);
-        setError('Bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyin.');
+        console.error('Dashboard verileri alınırken hata:', error);
+        setError(error.message || 'Veriler yüklenirken bir hata oluştu');
+      } finally {
         setLoading(false);
       }
     };
 
-    if (router.isReady) {
+    if (user) {
       loadData();
     }
-  }, [router.isReady]);
+  }, [user, router]);
 
   const {
     counts = {

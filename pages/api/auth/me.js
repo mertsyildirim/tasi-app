@@ -22,6 +22,13 @@ export default async function handler(req, res) {
   }
   
   try {
+    // JWT secret key kontrolü
+    const JWT_SECRET = process.env.JWT_SECRET;
+    if (!JWT_SECRET) {
+      console.error('JWT_SECRET environment variable is not defined');
+      return sendError(res, 'Sunucu yapılandırma hatası', 500);
+    }
+
     // Authorization header'dan token'ı al
     const authHeader = req.headers.authorization;
     
@@ -33,7 +40,7 @@ export default async function handler(req, res) {
     
     try {
       // Token'ı doğrula
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tasiapp-secret-key2024');
+      const decoded = jwt.verify(token, JWT_SECRET);
       
       // Veritabanına bağlan
       const conn = await connectToDatabase();

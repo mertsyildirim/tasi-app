@@ -1,9 +1,11 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { FaPlus, FaSearch, FaEdit, FaTrash, FaMapMarkerAlt, FaPhone, FaEnvelope, FaTruck, FaSpinner, FaChevronLeft, FaChevronRight, FaChevronDown, FaIdCard, FaCheck } from 'react-icons/fa'
+import { FaPlus, FaSearch, FaEdit, FaTrash, FaMapMarkerAlt, FaPhone, FaEnvelope, FaTruck, FaSpinner, FaChevronLeft, FaChevronRight, FaChevronDown, FaIdCard, FaCheck, FaUser } from 'react-icons/fa'
 import AdminLayout from '../../components/admin/Layout'
 import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api'
+import { useRouter } from 'next/router'
+import axios from 'axios'
 
 // Google Maps API anahtarı
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "AIzaSyAKht3SqaVJpufUdq-vVQEfBEQKejT9Z8k";
@@ -22,6 +24,7 @@ export default function ActiveDriversPage() {
   const [driverMarkers, setDriverMarkers] = useState([])
   const [selectedStatus, setSelectedStatus] = useState('')
   const [showDriverDetailModal, setShowDriverDetailModal] = useState(null)
+  const router = useRouter()
 
   // Google Maps yükleme
   const { isLoaded, loadError } = useJsApiLoader({
@@ -53,8 +56,70 @@ export default function ActiveDriversPage() {
 
   // API'den aktif sürücüleri çek
   useEffect(() => {
-    fetchActiveDrivers();
-  }, [currentPage]);
+    const checkAuth = async () => {
+      const token = localStorage.getItem('token');
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+
+      if (!token || !userData) {
+        router.push('/admin');
+        return;
+      }
+
+      const allowedRoles = ['admin', 'super_admin', 'editor', 'support'];
+      const hasAllowedRole = userData.roles?.some(role => allowedRoles.includes(role)) || allowedRoles.includes(userData.role);
+      
+      if (!hasAllowedRole && userData.email !== 'mert@tasipp.com') {
+        router.push('/admin/dashboard');
+        return;
+      }
+
+      await fetchDrivers();
+    };
+
+    checkAuth();
+  }, [router, currentPage, searchTerm]);
+
+  const fetchDrivers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/admin/active-drivers?page=${currentPage}&search=${searchTerm}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('userData');
+          router.push('/auth/login');
+          return;
+        }
+        throw new Error('Aktif sürücü verileri yüklenemedi');
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setActiveDrivers(data.drivers);
+        setTotalPages(data.totalPages);
+        setTotalDrivers(data.total || 0);
+        setActiveCount(data.active || 0);
+        setOnDeliveryCount(data.onDelivery || 0);
+      } else {
+        throw new Error(data.message || 'Veri yüklenirken bir hata oluştu');
+      }
+    } catch (error) {
+      setError(error.message);
+      console.error('Sürücü verisi yükleme hatası:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Sürücü konumlarını haritaya ekle
   useEffect(() => {
@@ -92,83 +157,18 @@ export default function ActiveDriversPage() {
     }
   }, [activeDrivers, isLoaded]);
 
-  const fetchActiveDrivers = async (page = currentPage) => {
-    try {
-      setLoading(true);
-      
-      // Token kontrol et
-      const token = localStorage.getItem('auth_token');
-      
-      if (!token) {
-        setError('Oturum bilgileriniz bulunamadı. Lütfen yeniden giriş yapın.');
-        setLoading(false);
-        return;
-      }
-      
-      // API'ye istek at
-      const response = await fetch(`/api/admin/active-drivers?page=${page}&limit=10${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ''}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      
-      // Yanıtı kontrol et
-      if (!response.ok) {
-        throw new Error(`API hatası: ${response.status}`);
-      }
-      
-      // Verileri parse et
-      const data = await response.json();
-      console.log('Aktif sürücüler API yanıtı:', data);
-      
-      // API yanıtını işle
-      if (data.success) {
-        // Veri başarıyla geldi
-        if (data.data && data.data.drivers) {
-          console.log(`${data.data.drivers.length} sürücü verileri alındı`);
-          setActiveDrivers(data.data.drivers);
-          setTotalPages(data.data.totalPages || 1);
-          setTotalDrivers(data.data.total || 0);
-          setActiveCount(data.data.active || 0);
-          setOnDeliveryCount(data.data.onDelivery || 0);
-        } else if (data.drivers) {
-          console.log(`${data.drivers.length} sürücü verileri alındı`);
-          setActiveDrivers(data.drivers);
-          setTotalPages(data.totalPages || 1);
-          setTotalDrivers(data.total || 0);
-          setActiveCount(data.active || 0);
-          setOnDeliveryCount(data.onDelivery || 0);
-        } else {
-          console.warn('API yanıtında sürücü verisi bulunamadı:', data);
-          setActiveDrivers([]);
-          setTotalPages(1);
-          setTotalDrivers(0);
-          setActiveCount(0);
-          setOnDeliveryCount(0);
-        }
-      } else {
-        console.error('API başarısız yanıt döndürdü:', data);
-        setError(data.message || 'Sürücü verileri alınamadı. Lütfen daha sonra tekrar deneyin.');
-        setActiveDrivers([]);
-      }
-    } catch (error) {
-      console.error('Aktif sürücüler getirilirken hata oluştu:', error);
-      setError(`Sürücü verileri yüklenirken bir hata oluştu: ${error.message}. Lütfen sayfayı yenileyin veya sistem yöneticinizle iletişime geçin.`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Sayfa değiştirme
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
   };
 
   // Arama işlemi
   const handleSearch = (e) => {
     e.preventDefault();
-    setCurrentPage(1); // Aramada ilk sayfaya dön
-    fetchActiveDrivers(1);
+    setCurrentPage(1);
+    fetchDrivers();
   };
 
   // Durum renk sınıfları
@@ -232,7 +232,7 @@ export default function ActiveDriversPage() {
     return (
       <AdminLayout title="Aktif Sürücüler">
         <div className="flex flex-col items-center justify-center h-64">
-          <FaSpinner className="animate-spin text-4xl text-orange-500 mb-4" />
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
           <p className="text-gray-600">Sürücü verileri yükleniyor...</p>
         </div>
       </AdminLayout>

@@ -4,8 +4,9 @@ import Script from 'next/script'
 import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { AuthProvider } from '../src/lib/auth'
+import { SessionProvider } from 'next-auth/react'
 
-function MyApp({ Component, pageProps }) {
+function MyApp({ Component, pageProps: { session, ...pageProps } }) {
   const router = useRouter()
   
   // Sayfa düzenini özelleştirme desteği
@@ -22,7 +23,7 @@ function MyApp({ Component, pageProps }) {
     return () => {
       router.events.off('routeChangeComplete', handleRouteChange)
     }
-  }, [router.events])
+  }, [router])
 
   return (
     <>
@@ -31,9 +32,11 @@ function MyApp({ Component, pageProps }) {
         <title>Taşı App - Taşıma ve Lojistik</title>
       </Head>
       
-      <AuthProvider>
-        {getLayout(<Component {...pageProps} />)}
-      </AuthProvider>
+      <SessionProvider session={session}>
+        <AuthProvider>
+          {getLayout(<Component {...pageProps} />)}
+        </AuthProvider>
+      </SessionProvider>
     </>
   )
 }

@@ -14,6 +14,19 @@ const setAxiosAuthHeader = (token) => {
   }
 };
 
+// Axios interceptor ekle
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      Cookies.remove('auth');
+      delete axios.defaults.headers.common['Authorization'];
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -27,21 +40,26 @@ export function AuthProvider({ children }) {
     try {
       const token = Cookies.get('auth');
       if (token) {
-        axios.defaults.headers.Authorization = `Bearer ${token}`;
+        setAxiosAuthHeader(token);
         try {
-          const { data } = await axios.get('/api/users/profile');
-          if (data) setUser(data);
+          const { data } = await axios.get('/api/auth/me');
+          if (data.success) {
+            setUser(data.user);
+          } else {
+            Cookies.remove('auth');
+            setAxiosAuthHeader(null);
+          }
         } catch (error) {
           console.error('Profile yüklenirken hata:', error);
           Cookies.remove('auth');
-          delete axios.defaults.headers.Authorization;
+          setAxiosAuthHeader(null);
         }
       }
       setLoading(false);
     } catch (error) {
       console.error('Token yüklenirken hata:', error);
       Cookies.remove('auth');
-      delete axios.defaults.headers.Authorization;
+      setAxiosAuthHeader(null);
       setLoading(false);
     }
   };

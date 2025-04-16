@@ -7,6 +7,8 @@ import {
   sendError, 
   logRequest 
 } from '../../../src/lib/api-utils';
+import { MongoClient } from 'mongodb';
+import { verify } from 'jsonwebtoken';
 
 // İzin verilen roller
 const allowedRoles = ['admin', 'super_admin', 'editor', 'support'];
@@ -44,6 +46,10 @@ async function isAuthorized(req) {
     return { authorized: false, message: 'Yetkilendirme kontrolünde bir hata oluştu.' };
   }
 }
+
+const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_DB = process.env.MONGODB_DB;
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export default async function handler(req, res) {
   // CORS ayarları
@@ -101,89 +107,43 @@ export default async function handler(req, res) {
 // Taşıyıcıları getir
 async function getCarriers(req, res, db) {
   try {
-    const { status, search, companyId } = req.query;
-      
-      // Filtreleme koşulları
-      let query = { roles: { $in: ['carrier'] } };
-      
-      if (status) {
-        if (status === 'active') {
-          query.isActive = true;
-        } else if (status === 'inactive') {
-          query.isActive = false;
-        } else if (status === 'pendingdocs') {
-          query.pendingDocuments = true;
-        }
-      }
-      
-      if (search) {
-        query.$or = [
-          { name: { $regex: search, $options: 'i' } },
-          { companyName: { $regex: search, $options: 'i' } },
-          { email: { $regex: search, $options: 'i' } },
-          { phone: { $regex: search, $options: 'i' } }
-        ];
-      }
-    
-    if (companyId) {
-      query._id = new ObjectId(companyId);
+    const { status, search, page = 1, limit = 10 } = req.query;
+    const skip = (page - 1) * limit;
+
+    // Filtreleme koşulları
+    const filter = { role: 'carrier' };
+    if (status) {
+      filter.status = status;
     }
-      
-      // Taşıyıcıları getir
-      const carriers = await db.collection('companies').find(query).toArray();
-      
-      // Ek bilgileri almak için taşıyıcı başına sürücü ve araç sayısını al
-      const carriersWithDetails = await Promise.all(carriers.map(async carrier => {
-        // Bu şirkete bağlı sürücü sayısını bul
-        const driversCount = await db.collection('drivers')
-          .countDocuments({ companyId: new ObjectId(carrier._id) });
-        
-        // Bu şirkete bağlı araç sayısını bul
-        const vehiclesCount = await db.collection('vehicles')
-          .countDocuments({ companyId: new ObjectId(carrier._id) });
-        
-        // Bu şirketin tamamlanmış taşıma sayısını bul
-        const completedShipmentsCount = await db.collection('transports')
-          .countDocuments({ 
-            carrierId: new ObjectId(carrier._id), 
-            status: 'completed' 
-          });
-        
-        // Bu şirketin aktif taşıma sayısını bul
-        const activeShipmentsCount = await db.collection('transports')
-          .countDocuments({ 
-            carrierId: new ObjectId(carrier._id), 
-            status: { $in: ['active', 'in_progress', 'assigned'] } 
-          });
-        
-        return {
-          id: carrier._id.toString(),
-          name: carrier.contactPerson || carrier.name,
-          company: carrier.name,
-          phone: carrier.phone || '',
-          email: carrier.email || '',
-          vehicles: vehiclesCount,
-          drivers: driversCount,
-          status: carrier.isActive ? 'Aktif' : 'Pasif',
-          joinDate: carrier.createdAt ? new Date(carrier.createdAt).toLocaleDateString('tr-TR') : '',
-          address: carrier.address || '',
-          completedShipments: completedShipmentsCount,
-          activeShipments: activeShipmentsCount,
-          pendingDocuments: carrier.pendingDocuments || false,
-          taxOffice: carrier.taxOffice || '',
-          taxNumber: carrier.taxNumber || '',
-          companyType: carrier.companyType || '',
-          registrationNumber: carrier.registrationNumber || ''
-        };
-      }));
-      
-    // Doğru şekilde API yanıtı döndür - sendSuccess'e durum kodu yerine veri gönder
-    return sendSuccess(res, {
-        carriers: carriersWithDetails
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { companyName: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Toplam kayıt sayısı
+    const total = await db.collection('users').countDocuments(filter);
+
+    // Taşıyıcıları getir
+    const carriers = await db.collection('users')
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .project({ password: 0 }) // Şifreyi hariç tut
+      .toArray();
+
+    res.status(200).json({
+      carriers,
+      total,
+      page: parseInt(page),
+      totalPages: Math.ceil(total / limit)
     });
   } catch (error) {
-    console.error('Taşıyıcıları getirme hatası:', error);
-    return sendError(res, 'Taşıyıcı verileri alınırken bir hata oluştu', 500);
+    console.error('Taşıyıcı listesi hatası:', error);
+    res.status(500).json({ error: 'Taşıyıcı listesi alınırken bir hata oluştu' });
   }
 }
     

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { withAuth } from '../../../lib/auth';
-import AdminLayout from '../../../components/layouts/AdminLayout';
+import { withAuth } from '../../../src/lib/auth';
+import AdminLayout from '../../../src/components/layouts/AdminLayout';
 import { FaUsers, FaSearch, FaFilter, FaUserPlus, FaEdit, FaTrash, FaExclamationTriangle, FaTimes, FaUserShield, FaUserTie, FaUser } from 'react-icons/fa';
 import axios from 'axios';
 import Link from 'next/link';

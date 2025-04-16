@@ -1,58 +1,53 @@
-import React from 'react';
-import { FaCheck, FaTruck } from 'react-icons/fa';
-import Link from 'next/link';
+import { useEffect } from 'react';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Link from 'next/link';
+import { FaCheckCircle } from 'react-icons/fa';
 
-const RegisterSuccess = () => {
+export default function RegisterSuccess() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // 5 saniye sonra giriş sayfasına yönlendir
+    const timer = setTimeout(() => {
+      router.push('/portal/login');
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-100 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+    <>
       <Head>
-        <title>Kayıt Başarılı | Taşı.app</title>
-        <meta name="description" content="Taşı.app taşıyıcı kayıt başarılı sayfası" />
+        <title>Kayıt Başarılı - TaşıApp</title>
+        <meta name="description" content="TaşıApp Taşıyıcı Portalı Kayıt Başarılı" />
       </Head>
-      
-      <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full">
-        <div className="text-center">
-          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-5">
-            <FaCheck className="h-6 w-6 text-green-600" />
-          </div>
-          
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Kayıt İşleminiz Tamamlandı!</h2>
-          
-          <div className="mx-auto mb-4 mt-6">
-            <img src="/portal_logo.png" alt="Taşı Portal" className="h-16 mx-auto" />
-          </div>
-          
-          <p className="text-gray-600 mb-5">
-            Taşıyıcı hesabınız oluşturuldu. Bilgileriniz onaylandıktan sonra size e-posta ile bilgilendirme yapılacaktır.
-          </p>
-          
-          <div className="border-t border-gray-200 pt-5 mt-5">
-            <p className="text-gray-500 mb-5 text-sm">
-              Hesabınızın onaylanması ve aktifleştirilmesi için gerekli evrakları en kısa sürede yüklemeniz gerekmektedir.
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8 text-center">
+          <div>
+            <FaCheckCircle className="mx-auto h-12 w-12 text-green-500" />
+            <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+              Kayıt İşlemi Başarılı
+            </h2>
+            <p className="mt-2 text-sm text-gray-600">
+              Hesabınız başarıyla oluşturuldu. Giriş yapabilmek için e-posta adresinize gönderilen onay linkine tıklayın.
             </p>
-            
-            <div className="space-y-3">
-              <Link
-                href="/portal/login"
-                className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-              >
-                Giriş Yapın
-              </Link>
-              
-              <Link
-                href="/"
-                className="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-              >
-                Ana Sayfaya Dön
-              </Link>
-            </div>
+          </div>
+
+          <div className="mt-8">
+            <Link
+              href="/portal/login"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Giriş Yap
+            </Link>
+          </div>
+
+          <div className="mt-4 text-sm text-gray-500">
+            <p>5 saniye içinde giriş sayfasına yönlendirileceksiniz...</p>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
-};
-
-export default RegisterSuccess; 
- 
+} 

@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import PortalLayout from '../../components/portal/Layout';
-import { FaUser, FaEnvelope, FaPhone, FaBuilding, FaMapMarkerAlt, FaEdit, FaSave, FaTimes, FaFileAlt, FaUpload, FaDownload, FaExclamationTriangle, FaCheckCircle, FaTruck, FaMotorcycle, FaBox, FaPallet, FaWarehouse, FaShippingFast, FaMapMarkedAlt, FaCheck, FaTimes as FaClose } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaPhone, FaBuilding, FaMapMarkerAlt, FaEdit, FaSave, FaTimes, FaFileAlt, FaUpload, FaDownload, FaExclamationTriangle, FaCheckCircle, FaTruck, FaMotorcycle, FaBox, FaPallet, FaWarehouse, FaShippingFast, FaMapMarkedAlt, FaCheck, FaTimes as FaClose, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 import dynamic from 'next/dynamic';
 import { LoadScript } from '@react-google-maps/api';
 import axios from 'axios';
+import Head from 'next/head';
 
 // Harita bileşenini dinamik olarak yükle (SSR sorunlarını önlemek için)
 const Map = dynamic(() => import('../../components/Map'), { ssr: false });
@@ -29,10 +30,14 @@ export default function Profile() {
     city: '',
     country: '',
     website: '',
-    description: ''
+    description: '',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
   });
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Taşıma tipleri
   const [transportTypes, setTransportTypes] = useState([
@@ -88,7 +93,10 @@ export default function Profile() {
           city: userData.city || '',
           country: userData.country || '',
           website: userData.website || '',
-          description: userData.description || ''
+          description: userData.description || '',
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
         });
         
         // Taşıma tiplerini doldur
@@ -164,7 +172,10 @@ export default function Profile() {
       city: mockUser.city || '',
       country: mockUser.country || '',
       website: mockUser.website || '',
-      description: mockUser.description || ''
+      description: mockUser.description || '',
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
     });
     
     // Taşıma tiplerini doldur
@@ -596,31 +607,43 @@ export default function Profile() {
 
             {/* Profil Formu */}
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                {/* Firma Adı */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Firma Adı
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FaBuilding className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      type="text"
-                      name="company"
-                      value={formData.company}
-                      onChange={handleInputChange}
-                      disabled={!isEditing}
-                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-                    />
-                  </div>
+              {error && (
+                <div className="rounded-md bg-red-50 p-4">
+                  <div className="text-sm text-red-700">{error}</div>
                 </div>
+              )}
+
+              {success && (
+                <div className="rounded-md bg-green-50 p-4">
+                  <div className="text-sm text-green-700">{success}</div>
+                </div>
+              )}
+
+              {/* Firma Adı */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Firma Adı
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <FaBuilding className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    name="company"
+                    value={formData.company}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+                  />
+                </div>
+              </div>
 
               {/* Adres */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Adres
-                  </label>
+                </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <FaMapMarkerAlt className="h-5 w-5 text-gray-400" />
@@ -634,7 +657,7 @@ export default function Profile() {
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
                   />
                 </div>
-                </div>
+              </div>
 
               {/* İlçe ve İl */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -642,9 +665,9 @@ export default function Profile() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     İlçe
                   </label>
-                  <div className="relative" ref={districtDropdownRef}>
-                  <input
-                    type="text"
+                  <div className="relative">
+                    <input
+                      type="text"
                       value={districtSearch}
                       onChange={(e) => {
                         setDistrictSearch(e.target.value);
@@ -664,15 +687,10 @@ export default function Profile() {
                             key={district.id}
                             className={`px-3 py-2 cursor-pointer ${
                               index === selectedDistrictIndex 
-                                ? 'bg-blue-100 text-blue-800' 
+                                ? 'bg-orange-100 text-orange-800' 
                                 : 'hover:bg-gray-100'
                             }`}
-                            onClick={() => {
-                              handleInputChange({ target: { name: 'district', value: district.id } });
-                              setDistrictSearch(district.name);
-                              setShowDistrictDropdown(false);
-                              setSelectedDistrictIndex(-1);
-                            }}
+                            onClick={() => handleDistrictSelect(district, index)}
                           >
                             {district.name}
                           </div>
@@ -685,7 +703,7 @@ export default function Profile() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     İl
                   </label>
-                  <div className="relative" ref={cityDropdownRef}>
+                  <div className="relative">
                     <input
                       type="text"
                       value={citySearch}
@@ -698,7 +716,6 @@ export default function Profile() {
                       onKeyDown={handleCityKeyDown}
                       placeholder="İl Ara..."
                       className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                    disabled={!isEditing}
                     />
                     {showCityDropdown && isEditing && (
                       <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
@@ -725,7 +742,7 @@ export default function Profile() {
                     )}
                   </div>
                 </div>
-                </div>
+              </div>
 
               {/* Vergi Dairesi ve Vergi Numarası */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -746,16 +763,16 @@ export default function Profile() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Vergi Numarası
                   </label>
-                    <input
-                      type="text"
+                  <input
+                    type="text"
                     name="taxNumber"
                     value={formData.taxNumber}
-                      onChange={handleInputChange}
-                      disabled={!isEditing}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
                     className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-                    />
-                  </div>
+                  />
                 </div>
+              </div>
 
               {/* Yetkili Kişi ve Cep Telefon */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -799,42 +816,42 @@ export default function Profile() {
                       className="block w-full pl-16 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
                     />
                   </div>
-                  </div>
                 </div>
+              </div>
 
               {/* E-posta */}
               <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   E-posta
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <FaEnvelope className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
+                  </div>
+                  <input
                     type="email"
                     name="email"
                     value={formData.email}
-                      onChange={handleInputChange}
-                      disabled={!isEditing}
-                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-                    />
-                  </div>
-                </div>
-
-              {/* Firma Açıklaması */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Firma Açıklaması
-                  </label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
                     onChange={handleInputChange}
                     disabled={!isEditing}
-                  rows="4"
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
                   />
+                </div>
+              </div>
+
+              {/* Firma Açıklaması */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Firma Açıklaması
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  disabled={!isEditing}
+                  rows="4"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+                />
               </div>
 
               {/* Kaydet Butonu */}
@@ -1027,7 +1044,7 @@ export default function Profile() {
                 </div>
                 {isEditingServiceAreas ? (
                   <button
-                    onClick={saveServiceAreas}
+                    onClick={updateServiceAreas}
                     className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
                   >
                     <FaSave />
@@ -1052,8 +1069,8 @@ export default function Profile() {
                 <div className="h-96 border border-gray-300 rounded-lg overflow-hidden">
                   <LoadScript googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}>
                     <Map 
-                      pickupAreas={mapData.pickupAreas}
-                      deliveryAreas={mapData.deliveryAreas}
+                      pickupAreas={serviceAreas.pickup}
+                      deliveryAreas={serviceAreas.delivery}
                     />
                   </LoadScript>
                 </div>
@@ -1262,18 +1279,18 @@ export default function Profile() {
                   </div>
                 )}
               </div>
-                  </div>
-                    </div>
+            </div>
+          </div>
         )}
       </div>
       <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
         <div className="flex-shrink-0 group block">
-                    <div className="flex items-center">
+          <div className="flex items-center">
             <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-orange-100">
               <span className="text-sm font-medium leading-none text-orange-700">
                 {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
               </span>
-                    </div>
+            </div>
             <div className="ml-3">
               <p className="text-sm font-medium text-gray-700">{user.companyName}</p>
               {user.name !== user.companyName && (
