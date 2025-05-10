@@ -1,25 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
   reactStrictMode: true,
+  swcMinify: true,
   images: {
-    unoptimized: true,
-    domains: ['localhost'],
-    remotePatterns: [
-      {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '3004',
-        pathname: '/**',
-      },
-    ],
+    domains: ['lh3.googleusercontent.com', 'graph.facebook.com'],
   },
-  eslint: {
-    ignoreDuringBuilds: true,
+  webpack: (config) => {
+    config.watchOptions = {
+      poll: 1000,
+      aggregateTimeout: 300,
+    }
+    return config
   },
-  typescript: {
-    ignoreBuildErrors: true,
-  }
 }
 
 module.exports = nextConfig 

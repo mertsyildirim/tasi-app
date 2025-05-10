@@ -51,3 +51,17 @@
 .animate-slideIn {
   animation: slideInFromBottom 0.5s ease-out;
 }
+
+/* Input alanları için titreme sorunu giderme */
+.transition-none {
+  transition: none !important;
+}
+
+/* Input alanları genel düzeltme */
+input {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  -webkit-font-smoothing: subpixel-antialiased;
+}

@@ -1,0 +1,48 @@
+// Pure ESM MongoDB connection module
+import { MongoClient } from 'mongodb';
+
+// Connection details
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://infotasiapp:Tasi2025.@cluster0.ttipxu5.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+const MONGODB_DB = process.env.MONGODB_DB || 'tasiapp';
+
+// Connection cache
+let cachedClient = null;
+let cachedDb = null;
+
+// Connect to database function
+export async function connectToDatabase() {
+  // Return cached connection if available
+  if (cachedClient && cachedDb) {
+    return { client: cachedClient, db: cachedDb };
+  }
+
+  try {
+    // Create new connection
+    const client = new MongoClient(MONGODB_URI);
+    await client.connect();
+    
+    const db = client.db(MONGODB_DB);
+    
+    // Cache connection
+    cachedClient = client;
+    cachedDb = db;
+    
+    return { client, db };
+  } catch (error) {
+    console.error('MongoDB connection error:', error.message);
+    throw error;
+  }
+}
+
+// Disconnect from database function
+export async function disconnectFromDatabase() {
+  if (cachedClient) {
+    try {
+      await cachedClient.close();
+      cachedClient = null;
+      cachedDb = null;
+    } catch (error) {
+      console.error('MongoDB disconnection error:', error);
+    }
+  }
+} 
